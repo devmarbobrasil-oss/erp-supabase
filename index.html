@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ERP Fujitec</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>tailwind.config={theme:{extend:{colors:{brand:{50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'},accent:{DEFAULT:'#06b6d4',500:'#06b6d4',600:'#0891b2'},surface:'#0b1120',surface2:'#111827',glass:'rgba(17,24,39,0.7)',card:'rgba(17,24,39,0.5)',card2:'rgba(17,24,39,0.7)',input:'rgba(15,23,42,0.8)'},fontFamily:{sans:['Inter','sans-serif'],mono:['JetBrains Mono','monospace']}}}}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#070b15;color:#e2e8f0;overflow-x:hidden}
+/* GRADIENTE DE FUNDO ANIMADO */
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 20% 50%,rgba(99,102,241,0.08) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(6,182,212,0.06) 0%,transparent 50%),radial-gradient(ellipse at 50% 80%,rgba(139,92,246,0.05) 0%,transparent 50%);pointer-events:none;z-index:0;animation:bgShift 20s ease infinite}
+@keyframes bgShift{0%,100%{transform:translate(0,0)}33%{transform:translate(1%,-1%)}66%{transform:translate(-1%,1%)}}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.3);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:rgba(99,102,241,0.5)}
+/* GLASS PANELS */
+.glass{background:rgba(17,24,39,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.06)}
+.glass-strong{background:rgba(17,24,39,0.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.08)}
+/* ANIMAÇÕES */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0.4)}50%{box-shadow:0 0 20px 5px rgba(99,102,241,0.15)}}
+@keyframes ping-red{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.5)}70%{box-shadow:0 0 0 12px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.fade-up{animation:fadeUp .4s cubic-bezier(.16,1,.3,1)}
+.fade-in{animation:fadeIn .3s ease}
+.slide-right{animation:slideRight .35s cubic-bezier(.16,1,.3,1)}
+.ping{animation:ping-red 2s infinite}
+/* CARDS */
+.card-hover{transition:all .25s cubic-bezier(.16,1,.3,1)}
+.card-hover:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.4),0 0 0 1px rgba(99,102,241,0.15)}
+/* GLOW BORDERS */
+.glow-border{position:relative}
+.glow-border::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(99,102,241,0.4),rgba(6,182,212,0.2),rgba(139,92,246,0.3));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+/* BOTÕES */
+.btn-primary{background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;font-weight:600;transition:all .2s;box-shadow:0 4px 15px rgba(99,102,241,0.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(99,102,241,0.45)}
+.btn-ghost{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#cbd5e1;transition:all .2s}
+.btn-ghost:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15)}
+.btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;box-shadow:0 4px 15px rgba(239,68,68,0.3)}
+.btn-danger:hover{box-shadow:0 6px 25px rgba(239,68,68,0.45)}
+/* BADGES */
+.badge{padding:2px 10px;border-radius:20px;font-size:11px;font-weight:500;letter-spacing:.02em}
+.badge-green{background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.2)}
+.badge-yellow{background:rgba(234,179,8,0.12);color:#facc15;border:1px solid rgba(234,179,8,0.2)}
+.badge-red{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.2)}
+.badge-blue{background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.2)}
+.badge-purple{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.2)}
+/* STAT CARDS */
+.stat-card{background:rgba(17,24,39,0.5);border:1px solid rgba(255,255,255,0.04);border-radius:16px;padding:20px;transition:all .25s}
+.stat-card:hover{background:rgba(17,24,39,0.7);border-color:rgba(99,102,241,0.15)}
+/* INPUTS */
+input,select,textarea{background:rgba(15,23,42,0.8)!important;border:1px solid rgba(255,255,255,0.08)!important;border-radius:12px!important;color:#e2e8f0!important;transition:all .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:rgba(99,102,241,0.5)!important;box-shadow:0 0 0 3px rgba(99,102,241,0.1)!important}
+/* PROGRESS BAR */
+.progress-bar{height:4px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.16,1,.3,1)}
+/* TOOLTIP */
+[data-tooltip]{position:relative}
+[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:6px 12px;border-radius:8px;font-size:11px;white-space:nowrap;z-index:100;border:1px solid rgba(255,255,255,0.1);pointer-events:none}
+/* SECTION DIVIDER */
+.section-title{font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+</style>
+</head>
+<body class="min-h-screen relative z-10">
+<div id="login-screen" class="min-h-screen flex items-center justify-center p-4 relative z-10">
+  <div class="w-full max-w-sm fade-in"><div class="text-center mb-8"><img src="https://fujitecbrasil.com.br/wp-content/uploads/2025/04/logo-fugitec-branca_-1.png" class="h-14 mx-auto mb-4 drop-shadow-lg"><h1 class="text-2xl font-black text-white tracking-tight">ERP <span class="text-brand-400">Fujitec</span></h1><p class="text-xs text-slate-500 mt-1">Sistema de Gestão de Projetos</p></div>
+    <div class="glass-strong rounded-2xl p-6 glow-border"><div id="login-error" class="hidden bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-xl mb-4 text-sm"></div>
+      <form id="login-form" class="space-y-4"><div><label class="block text-xs text-slate-400 mb-1.5 font-medium">Email</label><input type="email" id="lemail" required class="w-full px-4 py-3 text-white text-sm" placeholder="seu@email.com"></div><div class="relative"><label class="block text-xs text-slate-400 mb-1.5 font-medium">Senha</label><input type="password" id="lsenha" required class="w-full px-4 py-3 pr-10 text-white text-sm" placeholder="••••••••"><button type="button" onclick="var x=document.getElementById('lsenha');x.type=x.type==='password'?'text':'password'" class="absolute right-3 top-9 text-slate-400 hover:text-white text-sm transition">👁</button></div><label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer"><input type="checkbox" id="lremember" class="accent-brand-500 rounded"> Lembrar acesso</label><button type="submit" class="w-full btn-primary py-3 rounded-xl text-sm">Entrar no Sistema</button></form></div></div>
+</div>
+<div id="app-screen" class="hidden min-h-screen flex relative z-10">
+  <aside class="w-60 glass-strong flex flex-col flex-shrink-0 border-r border-white/5"><div class="px-5 py-4 border-b border-white/5 flex items-center gap-3"><img src="https://fujitecbrasil.com.br/wp-content/uploads/2025/04/logo-fugitec-branca_-1.png" class="h-7 drop-shadow-lg"><span class="text-sm font-semibold text-white">ERP</span></div><nav class="flex-1 p-3 space-y-1 overflow-y-auto" id="sidebar-nav"></nav><div class="p-3 border-t border-white/5" id="sidebar-user"></div></aside>
+  <main class="flex-1 flex flex-col min-w-0"><header class="glass border-b border-white/5 px-6 py-3 flex items-center justify-between"><div><h2 class="font-semibold text-white text-sm" id="page-title"></h2><p class="text-xs text-slate-500 mt-0.5" id="page-subtitle"></p></div><button onclick="refresh()" class="btn-ghost px-4 py-2 text-xs rounded-xl flex items-center gap-2"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Atualizar</button></header><div id="content" class="flex-1 overflow-y-auto p-6 fade-up"></div></main>
+</div>
+<div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)" onclick="if(event.target===this)hideModal()"><div class="glass-strong rounded-2xl glow-border w-full max-w-lg max-h-[85vh] overflow-y-auto fade-up"><div class="flex items-center justify-between px-5 py-4 border-b border-white/5"><h3 class="font-semibold text-white" id="mtitle"></h3><button onclick="hideModal()" class="text-slate-500 hover:text-white text-xl transition w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center">&times;</button></div><div id="mbody" class="p-5"></div><div id="mfooter" class="flex justify-end gap-3 px-5 pb-5"></div></div></div>
+<script>
+var U='https://vgvywythfbomzixfxoqd.supabase.co';
+var K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZndnl3eXRoZmJvbXppeGZ4b3FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMDA2ODIsImV4cCI6MjA5Nzc3NjY4Mn0.6-9WPdS9ez6ElP5N0iPmVhZOk8_taVmMgoFQgKBTOUk';
+var s=window.supabase.createClient(U,K);
+var u=null,p=null,pg='dashboard',pidAv=null,curDec=0,dec='',routeTarget=null;
+var sectors=[],users=[],userSectors=[],projects=[],history=[],empresas=[],stagelogs=[],FLOW=[];
+
+var $=function(q){return document.getElementById(q)};
+var E=function(v){var d=document.createElement('div');d.textContent=v||'';return d.innerHTML};
+var fd=function(v){return new Date(v).toLocaleDateString('pt-BR')};
+var ago=function(v){var m=Math.floor((Date.now()-new Date(v).getTime())/60000);if(m<1)return'agora';if(m<60)return m+'min';var h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d'};
+var sc=function(id){var x=sectors.find(function(s){return s.id===id});return x?x.color:'#22c55e'};
+var sn=function(id){var x=sectors.find(function(s){return s.id===id});return x?x.name:'Comercial'};
+var un=function(id){var x=users.find(function(s){return s.id===id});return x?x.name:'---'};
+var gU=function(sid){return users.filter(function(x){return x.main_sector_id===sid||userSectors.some(function(us){return us.user_id===x.id&&us.sector_id===sid})})};
+var gS=function(name){var x=sectors.find(function(s){return s.name===name});return x?x.id:null};
+var gSUsers=function(sectorId){return gU(sectorId)};
+var getTimeInSector=function(pid){
+  var lg=stagelogs.filter(function(x){return x.project_id===pid}).sort(function(a,b){return new Date(b.date)-new Date(a.date)})[0];
+  if(!lg)return 0;
+  return Math.floor((Date.now()-new Date(lg.date).getTime())/86400000);
+};
+var canCreate=function(){if(!p)return false;if(p.is_ceo)return true;var ok=['Comercial','Diretoria Financeira'];return ok.indexOf(sn(p.main_sector_id))>=0};
+
+// ==================== BPM: FLUXO FIXO HARDCODED ====================
+var FLOW_ORDER=[
+  'Comercial',
+  'Gestão de Projeto',
+  'Compras',
+  'Engenharia',
+  'Operações',
+  'Almoxarifado',
+  'Logística',
+  'Financeiro',
+  'Faturamento',
+  'Diretoria Financeira',
+  'Diretoria / CEO'
+];
+
+var FLOW_STEPS={
+  'Comercial':{resp:'Nathalia',decisions:[
+    {q:'Escopo está alinhado?',yes:'Escopo OK',no:'Ajustar escopo'},
+    {q:'É viável executar?',yes:'Viabilidade confirmada',no:'Encerrar/renegociar'},
+    {q:'Precisa de survey técnico?',yes:'Agendar visita + lista materiais',no:'Seguir sem survey'},
+    {q:'Proposta comercial aprovada?',yes:'Emitir proposta',no:'Revisar valores'},
+    {q:'Cliente aprovou proposta?',yes:'Contrato assinado',no:'Renegociar'}
+  ],nextDefault:'Gestão de Projeto'},
+
+  'Gestão de Projeto':{resp:'André',decisions:[
+    {q:'Projeto liberado (KOM)?',yes:'Abrir KOM + plano',no:'Aguardar liberação'},
+    {q:'Precisa de compras/materiais?',yes:'Encaminhar p/ Compras',no:'Não precisa'},
+    {q:'Precisa de engenharia?',yes:'Encaminhar p/ Engenharia',no:'Ir p/ Operações'}
+  ],nextOptions:['Compras','Engenharia','Operações'],nextDefault:'Operações'},
+
+  'Compras':{resp:'Rafaela',decisions:[
+    {q:'Material em estoque?',yes:'Solicitar Almoxarifado',no:'Iniciar cotação'},
+    {q:'Fornecedor aprovado?',yes:'Emitir pedido',no:'Nova cotação'},
+    {q:'Material entregue?',yes:'Liberar p/ Almoxarifado',no:'Follow-up'}
+  ],nextDefault:'Almoxarifado'},
+
+  'Engenharia':{resp:'Islan / Robson',decisions:[
+    {q:'Documentação técnica pronta?',yes:'Liberar docs',no:'Ajuste pendente'},
+    {q:'Projeto executivo aprovado?',yes:'Liberar p/ Operações',no:'Revisar'}
+  ],nextDefault:'Operações'},
+
+  'Operações':{resp:'Islan / Robson',decisions:[
+    {q:'Equipe e material OK?',yes:'Iniciar implantação',no:'Aguardar recursos'},
+    {q:'Implantação concluída?',yes:'Comissionamento OK',no:'Continuar'},
+    {q:'Sistema validado?',yes:'Iniciar treinamento',no:'Correções'},
+    {q:'Treinamento concluído?',yes:'Treinamento OK',no:'Reforço'}
+  ],nextOptions:['Almoxarifado','Financeiro'],nextDefault:'Financeiro'},
+
+  'Almoxarifado':{resp:'Adriele',decisions:[
+    {q:'Material recebido/conferido?',yes:'Separar p/ projeto',no:'Aguardar entrega'},
+    {q:'Material correto?',yes:'Liberar p/ Logística',no:'Devolver p/ Compras'}
+  ],nextDefault:'Logística'},
+
+  'Logística':{resp:'Rita',decisions:[
+    {q:'Material separado para envio?',yes:'Rota definida',no:'Aguardar separação'},
+    {q:'Entrega realizada?',yes:'Confirmar distribuição',no:'Reprogramar entrega'}
+  ],nextDefault:'Operações'},
+
+  'Financeiro':{resp:'Agnaldo',decisions:[
+    {q:'Medição conferida/aprovada?',yes:'Liberar pagamento',no:'Revisar'},
+    {q:'Pagamento autorizado?',yes:'Encaminhar Faturamento',no:'Aguardar aprovação'}
+  ],nextDefault:'Faturamento'},
+
+  'Faturamento':{resp:'Agnaldo',decisions:[
+    {q:'Nota fiscal emitida?',yes:'NF emitida',no:'Emitir NF'},
+    {q:'Faturamento conferido?',yes:'Enviar p/ Dir. Financeira',no:'Corrigir lançamentos'}
+  ],nextDefault:'Diretoria Financeira'},
+
+  'Diretoria Financeira':{resp:'Tainá',decisions:[
+    {q:'Documentação auditada?',yes:'Auditoria OK',no:'Correções'},
+    {q:'Liberação final aprovada?',yes:'Aprovar',no:'Reavaliar'}
+  ],nextDefault:'Diretoria / CEO'},
+
+  'Diretoria / CEO':{resp:'Fábio',decisions:[
+    {q:'Projeto concluído conforme escopo?',yes:'Concluído',no:'Retornar Operações'},
+    {q:'Cliente aprovou entrega?',yes:'Encerrar projeto',no:'Correções finais'}
+  ],nextDefault:null}
+};
+
+function getVisited(pid){
+  var seen=[];
+  stagelogs.filter(function(l){return l.project_id===pid}).forEach(function(l){
+    if(l.to_stage&&l.to_stage.indexOf('pendente')<0&&l.to_stage!=='Finalizado'&&seen.indexOf(l.to_stage)<0)
+      seen.push(l.to_stage);
+  });
+  return seen;
+}
+function getNextOptions(curName){
+  var fs=FLOW_STEPS[curName];if(!fs)return null;
+  if(fs.nextOptions)return fs.nextOptions;
+  if(fs.nextDefault)return[fs.nextDefault];
+  return null;
+}
+
+// ==================== UI ====================
+function showModal(t,b,f){$('mtitle').textContent=t;$('mbody').innerHTML=b;$('mfooter').innerHTML=f||'';$('modal').classList.remove('hidden')}
+function hideModal(){$('modal').classList.add('hidden')}
+async function nav(n){pg=n;renderSidebar();await loadData();renderPage()}
+function renderSidebar(){
+  var m=[{p:'dashboard',i:'📊',l:'Dashboard'}];
+  if(canCreate())m.push({p:'empresas',i:'🏢',l:'Empresas'});
+  m.push({p:'fluxos',i:'📥',l:'Meus Fluxos'},{p:'projetos',i:'📋',l:'Projetos'});
+  if(p&&p.is_ceo){m.push({p:'visao',i:'🏭',l:'Visão Geral'},{p:'gargalos',i:'⚠️',l:'Gargalos'},{p:'equipe',i:'👥',l:'Equipe'},{p:'setores',i:'⚙️',l:'Setores'});}m.push({p:'historico',i:'🕐',l:'Histórico'});
+  $('sidebar-nav').innerHTML=m.map(function(x){return'<a href="#" onclick="event.preventDefault();nav(\''+x.p+'\')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200'+(pg===x.p?' bg-brand-500/15 text-brand-300 font-semibold shadow-sm shadow-brand-500/5':' text-slate-400 hover:text-white hover:bg-white/[0.04]')+'">'+x.i+' '+x.l+'</a>'}).join('');
+  $('sidebar-user').innerHTML='<div class="flex items-center gap-3 px-2"><div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-brand-500/20">'+(p&&p.name?p.name[0]:'?')+'</div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">'+E(p?p.name:'')+'</p><p class="text-xs text-slate-500 truncate">'+E(p?p.email:'')+'</p></div><button onclick="logout()" class="text-slate-500 hover:text-red-400 text-lg transition-colors">⏻</button></div>';
+  $('page-title').textContent={dashboard:'Dashboard',empresas:'Empresas',fluxos:'Meus Fluxos',projetos:'Projetos',visao:'Visão Geral',gargalos:'Gargalos',equipe:'Equipe',setores:'Setores',historico:'Histórico'}[pg]||'ERP';
+}
+async function loadData(){
+  var all=await Promise.all([s.from('sectors').select('*').order('sort_order'),s.from('users_profile').select('*'),s.from('user_sectors').select('*'),s.from('projects').select('*').order('created_at',{ascending:false}),s.from('project_flow_history').select('*').order('created_at',{ascending:false}).limit(300),s.from('empresas').select('*').order('nome'),s.from('stage_logs').select('*').order('date',{ascending:false}).limit(500)]);
+  sectors=all[0].data||[];users=all[1].data||[];userSectors=all[2].data||[];projects=all[3].data||[];history=all[4].data||[];empresas=all[5].data||[];stagelogs=all[6].data||[];
+  FLOW=FLOW_ORDER;
+}
+async function refresh(){await loadData();renderPage()}
+function renderPage(){switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'historico':rHistorico();break}}
+
+// ==================== DASHBOARD ====================
+function rDashboard(){
+  var mySectors=p?[p.main_sector_id].concat(userSectors.filter(function(us){return us.user_id===p.id}).map(function(us){return us.sector_id})):[];
+  var pjs=p&&p.is_ceo?projects:projects.filter(function(pr){return pr.current_responsible_user_id===u.id||mySectors.indexOf(pr.current_sector_id)>=0});
+  var total=pjs.length,concluidos=pjs.filter(function(pr){return pr.status==='Finalizado'}).length,parados=[];
+  pjs.forEach(function(pr){var d=getTimeInSector(pr.id);if(d>3&&pr.status!=='Finalizado')parados.push({p:pr,dias:d})});
+  var h='<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">'+crd('TOTAL',total,'white')+crd('EM ANDAMENTO',total-concluidos,'#60a5fa')+crd('CONCLUÍDOS',concluidos,'#4ade80')+crd('PARADOS >3d',parados.length,'#f87171')+'</div>';
+  if(parados.length>0){h+='<div class="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5"><h3 class="text-sm font-semibold text-red-400 mb-3">⚠️ PARADOS</h3><div class="space-y-2">';parados.slice(0,8).forEach(function(g){h+='<div class="flex items-center gap-3 bg-card2 rounded-xl p-3 border border-slate-700 cursor-pointer" onclick="verProjeto(\''+g.p.id+'\')"><span class="w-2 h-2 rounded-full" style="background:'+sc(g.p.current_sector_id)+'"></span><span class="text-sm text-white flex-1">'+E(g.p.name)+'</span><span class="text-xs text-red-400">'+g.dias+'d</span></div>'});h+='</div></div>';}
+  h+='<h3 class="text-sm font-semibold text-white mb-3">Por Setor</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-3">';
+  sectors.filter(function(x){return x.active}).forEach(function(sec){var c=pjs.filter(function(pr){return pr.current_sector_id===sec.id}).length;h+='<div class="bg-card2 rounded-2xl p-4 border border-slate-800 cursor-pointer" style="border-left:4px solid '+sec.color+'" onclick="filtrarSetor(\''+sec.id+'\')"><span class="text-sm font-medium text-white">'+E(sec.name)+'</span><p class="text-2xl font-bold mt-1" style="color:'+sec.color+'">'+c+'</p></div>'});h+='</div>';
+  $('content').innerHTML=h;
+}
+function crd(l,v,c){return'<div class="bg-card2 rounded-2xl p-5 border border-slate-800"><p class="text-xs text-slate-500">'+l+'</p><p class="text-3xl font-bold mt-1" style="color:'+c+'">'+v+'</p></div>'}
+function filtrarSetor(sid){pg='projetos';renderSidebar();rProjetosSetor(sid)}
+
+// ==================== EMPRESAS ====================
+function rEmpresas(){
+  var btn=canCreate()?'<button onclick="showNovaEmpresa()" class="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl">+ Nova Empresa</button>':'';
+  var h='<div class="flex justify-between mb-6"><p class="text-sm text-slate-400">'+empresas.length+' empresa(s)</p>'+btn+'</div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+  empresas.forEach(function(emp){var cp=projects.filter(function(pr){return pr.empresa_id===emp.id}).length;h+='<div class="bg-card2 rounded-2xl p-5 border border-slate-800"><div class="flex justify-between"><h3 class="font-semibold text-white text-lg">'+E(emp.nome)+'</h3>'+(canCreate()?'<button onclick="event.stopPropagation();showEditarEmpresa(\''+emp.id+'\')" class="text-xs text-brand-400">✏️</button>':'')+'</div>'+(emp.cnpj?'<p class="text-xs text-slate-500">CNPJ: '+E(emp.cnpj)+'</p>':'')+'<p class="text-brand-400 text-sm mt-3 cursor-pointer" onclick="filtrarEmpresa(\''+emp.id+'\')">'+cp+' projetos →</p></div>'});h+='</div>';$('content').innerHTML=h;
+}
+function showNovaEmpresa(){showModal('Nova Empresa','<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome *</label><input id="ef-nome" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">CNPJ</label><input id="ef-cnpj" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div></div>','<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="criarEmpresa()" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Criar</button>')}
+async function criarEmpresa(){var nome=$('ef-nome').value.trim();if(!nome)return alert('Nome obrigatório');await s.from('empresas').insert({nome:nome,cnpj:$('ef-cnpj').value.trim()});hideModal();await loadData();renderPage()}
+function showEditarEmpresa(eid){var emp=empresas.find(function(x){return x.id===eid});if(!emp)return;showModal('Editar','<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome</label><input id="edef-nome" value="'+E(emp.nome)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">CNPJ</label><input id="edef-cnpj" value="'+E(emp.cnpj)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div></div>','<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="salvarEmpresa(\''+eid+'\')" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Salvar</button>')}
+async function salvarEmpresa(eid){await s.from('empresas').update({nome:$('edef-nome').value.trim(),cnpj:$('edef-cnpj').value.trim()}).eq('id',eid);hideModal();await loadData();renderPage()}
+function filtrarEmpresa(eid){pg='projetos';renderSidebar();rProjetosEmpresa(eid)}
+
+// ==================== PROJETOS ====================
+function rProjetos(){renderList(projects,'Todos')}
+function rProjetosSetor(sid){renderList(projects.filter(function(pr){return pr.current_sector_id===sid}),sn(sid))}
+function rProjetosEmpresa(eid){renderList(projects.filter(function(pr){return pr.empresa_id===eid}),empresas.find(function(x){return x.id===eid})?.nome||'')}
+function renderList(pjs,ttl){
+  var btn=canCreate()?'<button onclick="showNovoProjeto()" class="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl">+ Novo Projeto</button>':'';
+  var h='<div class="flex justify-between mb-6"><div><button onclick="nav(\'projetos\')" class="text-xs text-brand-400">&larr; Todos</button><p class="text-sm text-slate-400 mt-1">'+pjs.length+' projetos · '+ttl+'</p></div>'+btn+'</div><div class="space-y-3">';
+  pjs.forEach(function(pr){var b=pr.current_responsible_user_id===u.id?'border-red-500':'border-slate-700';var dias=getTimeInSector(pr.id);var td=dias>3?'text-red-400':dias>1?'text-yellow-400':'text-green-400';h+='<div class="bg-card2 rounded-2xl p-5 border '+b+' hover:ring-1 hover:ring-brand-500/30 transition fade-up"><div class="flex justify-between items-start"><div class="cursor-pointer flex-1" onclick="verProjeto(\''+pr.id+'\')"><span class="text-xs text-slate-500 font-mono">#'+E(pr.code||'')+'</span><h3 class="font-semibold text-white mt-1">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'---')+'</p></div><div class="flex gap-1"><button onclick="event.stopPropagation();showEditarProjeto(\''+pr.id+'\')" class="text-xs px-3 py-1.5 rounded-xl bg-input text-slate-300">✏️</button><button onclick="event.stopPropagation();showAvancar(\''+pr.id+'\')" class="text-xs px-3 py-1.5 rounded-xl bg-brand-600 text-white">▶ Avançar</button></div></div><div class="flex gap-3 mt-3 text-xs"><span style="color:'+sc(pr.current_sector_id)+'">● '+sn(pr.current_sector_id)+'</span><span class="'+td+'">⏱ '+dias+'d</span><span class="text-slate-500">👤 '+un(pr.current_responsible_user_id)+'</span></div></div>'});h+='</div>';$('content').innerHTML=h;
+}
+function showNovoProjeto(){
+  var comSid=gS('Comercial');
+  var us=gSUsers(comSid);
+  showModal('Novo Projeto','<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome *</label><input id="np-nome" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-slate-400">Código</label><input id="np-code" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">Cliente</label><input id="np-client" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div></div><div><label class="text-xs text-slate-400">Empresa *</label><select id="np-emp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+empresas.map(function(x){return'<option value="'+x.id+'">'+E(x.nome)+'</option>'}).join('')+'</select></div><div><label class="text-xs text-slate-400">Responsável (Comercial)</label><select id="np-resp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+us.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('')+'</select></div></div>','<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="criarProjeto()" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Criar</button>')
+}
+async function criarProjeto(){var nome=$('np-nome').value.trim();if(!nome)return alert('Nome obrigatório');var eid=$('np-emp').value;if(!eid)return alert('Selecione empresa');var comSid=gS('Comercial');var resp=$('np-resp').value||u.id;await s.from('projects').insert({name:nome,code:$('np-code').value.trim(),client_name:$('np-client').value.trim(),empresa_id:eid,current_sector_id:comSid,current_responsible_user_id:resp,created_by:u.id,status:'Novo',start_date:new Date().toISOString()});await s.from('stage_logs').insert({project_id:(await s.from('projects').select('id').order('created_at',{ascending:false}).limit(1)).data[0].id,from_stage:'Início',to_stage:'Comercial',user_id:u.id,notes:'Projeto criado'});hideModal();await loadData();renderPage()}
+function showEditarProjeto(pid){var pr=projects.find(function(x){return x.id===pid});if(!pr)return;showModal('Editar Projeto','<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome</label><input id="edp-nome" value="'+E(pr.name)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-slate-400">Código</label><input id="edp-code" value="'+E(pr.code)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">Cliente</label><input id="edp-client" value="'+E(pr.client_name)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div></div><div><label class="text-xs text-slate-400">Status</label><select id="edp-status" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"><option>Novo</option><option>Em andamento</option><option>Concluído</option><option>Finalizado</option><option>Cancelado</option></select></div></div>','<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="salvarProjeto(\''+pid+'\')" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Salvar</button>')}
+async function salvarProjeto(pid){await s.from('projects').update({name:$('edp-nome').value.trim(),code:$('edp-code').value.trim(),client_name:$('edp-client').value.trim(),status:$('edp-status').value}).eq('id',pid);hideModal();await loadData();renderPage()}
+
+// ==================== MOTOR DE AVANÇO BPM ====================
+async function showAvancar(pid){
+  pidAv=pid;curDec=0;dec='';routeTarget=null;
+  var pr=projects.find(function(x){return x.id===pid});if(!pr)return;
+  var curName=sn(pr.current_sector_id);
+  if(FLOW_ORDER.indexOf(curName)<0){alert('Setor '+curName+' não está no fluxo BPM');return}
+  var fs=FLOW_STEPS[curName]||FLOW_STEPS['Comercial'];
+  decs=fs.decisions||[];
+  var visited=getVisited(pid);
+  var nextOpts=getNextOptions(curName);
+  rBpmSetor(pr,curName,fs,nextOpts,visited);
+}
+function rBpmSetor(pr,curName,fs,nextOpts,visited){
+  var b='<div class="space-y-4"><div class="bg-card rounded-2xl p-4 border border-slate-700"><p class="text-xs text-slate-500">SETOR ATUAL</p><p class="text-lg font-bold" style="color:'+sc(pr.current_sector_id)+'">🟢 '+curName+'</p><p class="text-xs text-slate-500 mt-2">👤 Responsável: <span class="text-white">'+E(fs.resp)+'</span></p></div>';
+  if(nextOpts&&nextOpts.length>0){
+    b+='<div class="bg-card rounded-2xl p-4 border border-brand-500/30"><p class="text-xs text-slate-500">PRÓXIMO →</p><p class="text-lg font-bold text-brand-400">'+nextOpts.join(' | ')+'</p>';
+    if(nextOpts.length>1)b+='<p class="text-xs text-yellow-400 mt-1">⚠️ Escolha a rota após decisões</p>';
+    b+='</div>';
+  }else if(nextOpts===null){
+    b+='<div class="bg-card rounded-2xl p-4 border border-green-500/30 text-center"><p class="text-lg font-bold text-green-400">🏁 ÚLTIMO SETOR</p></div>';
+  }
+  if(visited.length>0)b+='<div class="text-xs text-slate-600">Setores percorridos: '+visited.join(' → ')+'</div>';
+  b+='</div>';
+  $('mtitle').textContent='📍 Setor - '+E(pr.name);
+  $('mbody').innerHTML=b;
+  $('mfooter').innerHTML='<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="rDec()" class="px-6 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium">Iniciar Decisões →</button>';
+  $('modal').classList.remove('hidden');
+}
+function rDec(){
+  if(curDec>=decs.length){rBpmRoute();return}
+  var d=decs[curDec],pr=projects.find(function(x){return x.id===pidAv}),curName=sn(pr.current_sector_id);
+  $('mtitle').textContent='❓ Decisão '+(curDec+1)+'/'+decs.length+' - '+E(pr.name);
+  var b='<div class="text-center py-4"><div class="bg-card rounded-2xl p-6 border border-yellow-500/30"><p class="text-xs text-slate-500 mb-1">'+curName+'</p><p class="text-lg font-semibold text-white mb-2">'+d.q+'</p><div class="flex gap-4 justify-center mt-6"><button onclick="rDecResult(\'✅ '+d.yes+'\')" class="px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl text-base font-bold transition">✅ SIM<br><span class="text-xs font-normal">'+d.yes+'</span></button><button onclick="rDecResult(\'❌ '+d.no+'\')" class="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-base font-bold transition">❌ NÃO<br><span class="text-xs font-normal">'+d.no+'</span></button></div></div></div>';
+  $('mbody').innerHTML=b;
+  $('mfooter').innerHTML='<button onclick="if(curDec>0){curDec--;rDec()}else{showAvancar(pidAv)}" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">← Voltar</button>';
+}
+function rDecResult(r){dec+=(dec?' | ':'')+r;curDec++;rDec()}
+
+function rBpmRoute(){
+  var pr=projects.find(function(x){return x.id===pidAv});if(!pr)return;
+  var curName=sn(pr.current_sector_id);
+  var nextOpts=getNextOptions(curName);
+  if(nextOpts===null){rBpmFinal();return}
+  if(nextOpts.length===1){routeTarget=nextOpts[0];rBpmFinal();return}
+  // Múltiplas rotas → escolha
+  $('mtitle').textContent='🔀 Escolha o destino - '+E(pr.name);
+  var b='<div class="space-y-3"><p class="text-sm text-slate-300">Decisões:</p><div class="bg-card rounded-2xl p-3 border border-slate-700"><p class="text-xs text-slate-300">'+E(dec)+'</p></div><p class="text-sm text-slate-400 mt-4">Para qual setor enviar?</p><div class="space-y-2">';
+  nextOpts.forEach(function(ns){var fs=FLOW_STEPS[ns];b+='<button onclick="routeTarget=\''+ns+'\';rBpmFinal()" class="w-full px-4 py-3 bg-card2 border border-slate-700 rounded-xl text-left hover:border-brand-500 transition"><span class="font-medium text-white">'+ns+'</span><span class="text-xs text-slate-500 ml-2">👤 '+E(fs?fs.resp:'')+'</span></button>'});
+  b+='</div></div>';
+  $('mbody').innerHTML=b;
+  $('mfooter').innerHTML='<button onclick="curDec=Math.max(0,decs.length-1);rDec()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">← Voltar</button>';
+}
+
+function rBpmFinal(){
+  var pr=projects.find(function(x){return x.id===pidAv});if(!pr)return;
+  var curName=sn(pr.current_sector_id);
+  var nxtSector=routeTarget;
+  var us=gSUsers(pr.current_sector_id);
+  if(us.length===0)return alert('Sem colaboradores vinculados ao setor '+curName+'!');
+  var opts=us.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('');
+  var allYes=dec.indexOf('❌')<0;
+  $('mtitle').textContent='✅ Finalizar - '+E(pr.name);
+  var b='<div class="space-y-4"><div class="bg-card rounded-2xl p-3 border border-slate-700"><p class="text-xs text-slate-500">Decisões:</p><p class="text-sm text-slate-300 mt-1">'+E(dec)+'</p></div>';
+  if(nxtSector){b+='<div class="bg-card rounded-2xl p-3 border '+(allYes?'border-green-500/30':'border-red-500/30')+' text-center"><p class="text-sm font-bold '+(allYes?'text-green-400':'text-red-400')+'\">'+(allYes?'✅ Avançar p/ '+nxtSector:'❌ Pendências em '+curName)+'</p></div>'}
+  else{b+='<div class="bg-card rounded-2xl p-3 border border-green-500/30 text-center"><p class="text-sm font-bold text-green-400">🏁 Projeto será finalizado</p></div>'}
+  b+='<div><label class="text-xs text-slate-400">Responsável ('+curName+') *</label><select id="av-resp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm mt-1">'+opts+'</select></div><div><label class="text-xs text-slate-400">Observação</label><textarea id="av-notes" rows="2" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm mt-1">'+E(dec)+'</textarea></div></div>';
+  $('mbody').innerHTML=b;
+  $('mfooter').innerHTML='<button onclick="if(decs.length>1){curDec=Math.max(0,decs.length-1);rDec()}else{showAvancar(pidAv)}" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">← Voltar</button><button onclick="doAv()" class="px-6 py-3 bg-green-600 text-white rounded-xl text-sm font-medium">✅ Confirmar</button>';
+}
+
+async function doAv(){
+  var pid=pidAv,pr=projects.find(function(x){return x.id===pid});if(!pr)return;
+  var curName=sn(pr.current_sector_id);
+  var nxtSector=routeTarget;
+  var resp=$('av-resp')?$('av-resp').value:'',notes=$('av-notes')?$('av-notes').value.trim():'';
+  if(!resp)return alert('Selecione um responsável do setor '+curName);
+  // Valida: responsável pertence ao setor atual (main OU user_sectors)
+  var uResp=users.find(function(x){return x.id===resp});
+  var noSetor=uResp&&(uResp.main_sector_id===pr.current_sector_id||userSectors.some(function(us){return us.user_id===resp&&us.sector_id===pr.current_sector_id}));
+  if(!noSetor)return alert('Responsável deve pertencer ao setor '+curName);
+  var allOk=dec.indexOf('❌')<0;
+  if(allOk&&nxtSector){
+    var nsid=gS(nxtSector);
+    await s.from('projects').update({current_sector_id:nsid,current_responsible_user_id:resp}).eq('id',pid);
+    await s.from('stage_logs').insert({project_id:pid,from_stage:curName,to_stage:nxtSector,user_id:u.id,notes:notes||dec});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'flow_received',title:'Novo: '+E(pr.name),message:curName+' → '+nxtSector+'. Resp: '+E(uResp.name),status:'pendente'});
+  }else if(!nxtSector&&allOk){
+    await s.from('projects').update({current_responsible_user_id:resp,status:'Finalizado',finalized_at:new Date().toISOString()}).eq('id',pid);
+    await s.from('stage_logs').insert({project_id:pid,from_stage:curName,to_stage:'Finalizado',user_id:u.id,notes:notes||dec});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'finalized',title:'Finalizado: '+E(pr.name),message:'Projeto '+E(pr.name)+' finalizado em '+curName,status:'pendente'});
+  }else{
+    await s.from('projects').update({current_responsible_user_id:resp}).eq('id',pid);
+    await s.from('stage_logs').insert({project_id:pid,from_stage:curName,to_stage:curName+' (pendente)',user_id:u.id,notes:notes||dec});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'stalled',title:'Pendência: '+E(pr.name),message:'Projeto '+E(pr.name)+' com pendência em '+curName,status:'pendente'});
+  }
+  hideModal();await loadData();renderPage();
+}
+
+// ==================== MEUS FLUXOS ====================
+function rFluxos(){
+  var meusSetores=[p.main_sector_id].concat(userSectors.filter(function(us){return us.user_id===p.id}).map(function(us){return us.sector_id}));
+  var meusSetoresNomes=meusSetores.map(function(sid){return sn(sid)}).filter(function(v,i,a){return a.indexOf(v)===i});
+  var pjs=projects.filter(function(pr){return pr.current_responsible_user_id===u.id});
+  var h='<div class="mb-6 glass-strong rounded-2xl p-5 glow-border"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-lg font-black text-white shadow-lg shadow-brand-500/20">'+(p&&p.name?p.name[0]:'?')+'</div><div><h3 class="text-lg font-bold text-white">'+E(p?p.name:'')+'</h3><p class="text-xs text-slate-400">'+E(p?p.email:'')+'</p><div class="flex flex-wrap gap-1 mt-1.5">';
+  meusSetoresNomes.forEach(function(sn){h+='<span class="badge badge-blue">'+sn+'</span>'});
+  h+='</div></div></div>';
+  h+='<div class="flex justify-between items-center mb-4"><p class="text-sm text-slate-400"><span class="text-brand-400 font-semibold">'+pjs.length+'</span> atividade(s) designada(s) para você</p></div>';
+  if(pjs.length===0){h+='<div class="text-center py-16 glass rounded-2xl"><div class="text-5xl mb-3">📭</div><p class="text-slate-400">Nenhuma atividade pendente</p><p class="text-xs text-slate-600 mt-1">Quando um projeto chegar no seu setor, aparecerá aqui</p></div>';$('content').innerHTML=h;return}
+  h+='<div class="space-y-3">';
+  pjs.forEach(function(pr){
+    var dias=getTimeInSector(pr.id);
+    var td=dias>3?'border-red-500/50 bg-red-500/3':dias>1?'border-yellow-500/30 bg-yellow-500/3':'border-brand-500/20 bg-brand-500/3';
+    var tdText=dias>3?'text-red-400':dias>1?'text-yellow-400':'text-green-400';
+    var empNome=empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'---';
+    var setorNome=sn(pr.current_sector_id);
+    var setorColor=sc(pr.current_sector_id);
+    h+='<div class="glass rounded-2xl p-5 border '+td+' card-hover cursor-pointer" onclick="verProjeto(\''+pr.id+'\')"><div class="flex justify-between items-start"><div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="badge" style="background:'+setorColor+'20;color:'+setorColor+';border:1px solid '+setorColor+'40">'+setorNome+'</span><span class="text-xs '+tdText+' font-semibold">⏱ '+dias+'d</span></div><h3 class="font-semibold text-white text-base">'+E(pr.name)+'</h3><p class="text-xs text-slate-500 mt-0.5">🏢 '+E(empNome)+'</p><p class="text-xs text-slate-500 mt-1">📋 Ação: <span class="text-white">Revisar e avançar fluxo</span></p></div><button onclick="event.stopPropagation();showAvancar(\''+pr.id+'\')" class="btn-primary px-4 py-2 text-xs rounded-xl flex-shrink-0">▶ Avançar</button></div></div>';
+  });
+  h+='</div>';$('content').innerHTML=h;
+}
+
+// ==================== VISÃO GERAL (CEO) ====================
+function rVisao(){
+  var h='<div class="mb-4 flex justify-between items-center"><p class="text-sm text-slate-400">'+empresas.length+' empresas · '+projects.filter(function(p){return p.status!=='Finalizado'}).length+' projetos ativos</p></div>';
+  var ativos=projects.filter(function(p){return p.status!=='Finalizado'});
+  var secs=sectors.filter(function(x){return x.active});
+  if(ativos.length===0){h+='<div class="text-center text-slate-500 py-12">Nenhum projeto ativo.</div>';$('content').innerHTML=h;return}
+  var empMap={};
+  ativos.forEach(function(pr){var eid=pr.empresa_id||'sem_empresa';if(!empMap[eid])empMap[eid]={emp:empresas.find(function(x){return x.id===eid})||{id:eid,nome:'Sem empresa'},projs:[]};empMap[eid].projs.push(pr)});
+  h+='<div class="overflow-x-auto"><table class="w-full text-sm border-collapse"><thead><tr><th class="text-left px-3 py-2 bg-card2 text-slate-400 font-medium sticky left-0 z-10 rounded-tl-xl">Empresa</th><th class="px-3 py-2 bg-card2 text-slate-400 font-medium text-center">Qtd</th>';
+  secs.forEach(function(sec){h+='<th class="px-3 py-2 bg-card2 text-slate-400 font-medium text-center whitespace-nowrap">'+E(sec.name)+'</th>'});
+  h+='</tr></thead><tbody>';
+  var keys=Object.keys(empMap).sort(function(a,b){return(empMap[a].emp.nome||'').localeCompare(empMap[b].emp.nome||'')});
+  keys.forEach(function(k,i){var row=empMap[k];h+='<tr class="'+(i%2===0?'bg-card/50':'bg-card2/30')+' hover:bg-brand-600/10 transition"><td class="px-3 py-2.5 font-medium text-white whitespace-nowrap sticky left-0 '+(i%2===0?'bg-card':'bg-card2')+' border-r border-slate-800">'+E(row.emp.nome)+'</td><td class="px-3 py-2.5 text-center text-brand-400 font-semibold">'+row.projs.length+'</td>';
+    secs.forEach(function(sec){var cell=row.projs.filter(function(pr){return pr.current_sector_id===sec.id});if(cell.length===0){h+='<td class="px-3 py-2.5 text-center text-slate-600">—</td>';return}
+      h+='<td class="px-2 py-2"><div class="space-y-1">';
+      cell.forEach(function(pr){var dias=getTimeInSector(pr.id);var cls=dias>3?'text-red-400':dias>1?'text-yellow-400':'text-green-400';
+        h+='<div class="bg-card rounded-lg px-2 py-1 text-xs cursor-pointer hover:ring-1 hover:ring-brand-500/50" style="border-left:3px solid '+sc(sec.id)+'" onclick="verProjeto(\''+pr.id+'\')"><span class="text-white">'+E(pr.name||pr.code)+'</span> <span class="'+cls+'">'+dias+'d</span></div>';
+      });
+      h+='</div></td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div><p class="text-xs text-slate-600 mt-4">🟢 Até 1d no setor · 🟡 2-3d · 🔴 +3d (gargalo)</p>';
+  $('content').innerHTML=h;
+}
+
+// ==================== GARGALOS ====================
+function rGargalos(){var list=[];projects.forEach(function(pr){if(pr.status==='Finalizado')return;var d=getTimeInSector(pr.id);if(d>2)list.push({p:pr,dias:d})});list.sort(function(a,b){return b.dias-a.dias});var h='<h3 class="text-sm font-semibold text-white mb-4">⚠️ Parados >2d ('+list.length+')</h3><div class="space-y-3">';list.forEach(function(g){h+='<div class="bg-card2 rounded-2xl p-5 border border-slate-800 cursor-pointer" onclick="verProjeto(\''+g.p.id+'\')"><h3 class="font-semibold text-white">'+E(g.p.name)+'</h3><span class="text-xs text-red-400">🔴 '+g.dias+'d</span> · '+sn(g.p.current_sector_id)+' · 👤 '+un(g.p.current_responsible_user_id)+'</div>'});h+='</div>';$('content').innerHTML=h}
+
+// ==================== DETALHE DO PROJETO ====================
+function verProjeto(pid){
+  var pr=projects.find(function(x){return x.id===pid});if(!pr)return;
+  var logs=stagelogs.filter(function(x){return x.project_id===pid}).sort(function(a,b){return new Date(b.date)-new Date(a.date)});
+  var diasNoSetor=getTimeInSector(pid);
+  var td=diasNoSetor>3?'text-red-400':diasNoSetor>1?'text-yellow-400':'text-green-400';
+  var h='<div class="mb-4"><button onclick="nav(\'projetos\')" class="text-slate-400 hover:text-white text-sm">&larr; Voltar</button><div class="flex justify-between mt-2"><div><h3 class="text-lg font-semibold text-white">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'')+'</p></div><div class="flex gap-2"><button onclick="showEditarProjeto(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-input text-slate-300 rounded-xl">✏️</button><button onclick="showAvancar(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-xl">▶ Avançar</button>'+(p&&p.is_ceo?'<button onclick="excluirProjeto(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-red-600 text-white rounded-xl">🗑</button>':'')+'</div></div></div>';
+  h+='<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">'+dc2('Setor',sn(pr.current_sector_id),sc(pr.current_sector_id))+dc2('Status',pr.status,'')+dc2('Responsável',un(pr.current_responsible_user_id),'')+dc2('Criado',fd(pr.created_at),'')+dc2('⏱ No setor',diasNoSetor+'d',td.replace('text-',''))+'</div>';
+  h+='<h4 class="text-sm font-semibold text-white mb-2">🕐 Histórico de Transições</h4><div class="space-y-1">';
+  logs.forEach(function(l,i){var dt=ago(l.date);var nextLog=i>0?logs[i-1]:null;var dur='';if(nextLog){var m=Math.floor((new Date(nextLog.date)-new Date(l.date))/60000);if(m<60)dur=m+'min';else if(m<1440)dur=Math.floor(m/60)+'h';else dur=Math.floor(m/1440)+'d'}else{dur='atual'}var udur=dur==='atual'?'text-green-400':parseInt(dur)>1440?'text-red-400':'text-slate-500';h+='<div class="bg-card2 rounded-xl p-3 border border-slate-800 text-sm flex gap-3"><span class="text-xs text-slate-600 w-16">'+dt+'</span><span class="text-slate-300 flex-1">'+E(l.from_stage||'Início')+' → '+E(l.to_stage)+'</span><span class="text-xs '+udur+' w-16 text-right">'+dur+'</span><span class="text-xs text-slate-600 w-24 text-right">👤 '+un(l.user_id)+'</span></div>'});
+  h+='</div>';$('content').innerHTML=h;
+}
+function dc2(l,v,c){var cl=c||'white';return'<div class="bg-card2 rounded-2xl p-4 border border-slate-800"><p class="text-xs text-slate-500">'+l+'</p><p style="color:'+cl+'" class="font-medium">'+E(v)+'</p></div>'}
+async function excluirProjeto(pid){if(confirm('Excluir?')){await s.from('projects').delete().eq('id',pid);await loadData();nav('projetos')}}
+
+// ==================== EQUIPE ====================
+function rEquipe(){var h='<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';users.forEach(function(us){h+='<div class="bg-card2 rounded-2xl p-5 border border-slate-800"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-brand-600/20 flex items-center justify-center text-brand-400 font-bold">'+(us.name||'?')[0]+'</div><div><p class="font-medium text-white">'+E(us.name)+'</p><p class="text-xs text-slate-500">'+E(us.email)+'</p></div></div><span class="text-xs px-2 py-0.5 rounded-full '+(us.is_ceo?'bg-yellow-500/20 text-yellow-400':'bg-blue-500/20 text-blue-400')+'">'+(us.is_ceo?'CEO':us.role)+'</span></div>'});h+='</div>';$('content').innerHTML=h}
+
+// ==================== SETORES ====================
+function rSetores(){var h='<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';sectors.filter(function(x){return x.active}).forEach(function(sec){var c=projects.filter(function(pr){return pr.current_sector_id===sec.id}).length;var us=gU(sec.id);h+='<div class="bg-card2 rounded-2xl p-5 border border-slate-800 cursor-pointer hover:ring-1 hover:ring-brand-500/30 transition" style="border-left:4px solid '+sec.color+'" onclick="filtrarSetor(\''+sec.id+'\')"><span class="font-semibold text-white">'+E(sec.name)+'</span><p class="text-2xl font-bold mt-1" style="color:'+sec.color+'">'+c+'</p><p class="text-xs text-slate-500 mt-2">'+us.length+' colaborador(es):</p><div class="flex flex-wrap gap-1 mt-1">';us.forEach(function(uu){h+='<span class="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">'+E(uu.name)+'</span>'});h+='</div></div>'});h+='</div>';$('content').innerHTML=h}
+
+// ==================== HISTÓRICO ====================
+function rHistorico(){var h='<div class="space-y-1">';stagelogs.sort(function(a,b){return new Date(b.date)-new Date(a.date)}).slice(0,100).forEach(function(l){h+='<div class="bg-card2 rounded-xl p-3 border border-slate-800 text-sm flex gap-3"><span class="text-xs text-slate-600 w-14">'+ago(l.date)+'</span><span class="text-slate-300">'+E(l.from_stage||'Início')+' → '+E(l.to_stage)+'</span><span class="text-xs text-slate-600">'+un(l.user_id)+'</span></div>'});h+='</div>';$('content').innerHTML=h}
+
+// ==================== LOGIN / LOGOUT ====================
+$('login-form').addEventListener('submit',async function(e){e.preventDefault();var r=await s.auth.signInWithPassword({email:$('lemail').value,password:$('lsenha').value});if(r.error){$('login-error').textContent=r.error.message;$('login-error').classList.remove('hidden');return}u=r.data.user;var pf=await s.from('users_profile').select('*').eq('id',u.id).single();if(!pf.data){await s.from('users_profile').insert({id:u.id,auth_user_id:u.id,name:u.email,email:u.email,role:'colaborador',is_ceo:false,active:true});p={id:u.id,role:'colaborador',is_ceo:false,name:u.email,email:u.email}}else p=pf.data;$('login-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');nav('dashboard')});
+async function logout(){await s.auth.signOut();$('app-screen').classList.add('hidden');$('login-screen').classList.remove('hidden')}
+window.addEventListener('DOMContentLoaded',async function(){var r=await s.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){u=r.data.session.user;var pf=await s.from('users_profile').select('*').eq('id',u.id).single();p=pf.data;$('login-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');nav('dashboard')}});
+</script>
+</body>
+</html>
