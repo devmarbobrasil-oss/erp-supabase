@@ -1,0 +1,18 @@
+# Segredos e arquivos internos — NUNCA versionar/publicar
+node_modules/
+.mimocode/
+.vercel/
+.env
+.env.*
+
+# Contêm chaves service_role / secret e senhas — manter fora do Git
+criar-usuarios.js
+Novo Documento de Texto.txt
+*.sql
+
+# Backups locais
+index.backup*.html
+*.backup-*.html
+
+# Pasta legado
+Não foi utilizado/

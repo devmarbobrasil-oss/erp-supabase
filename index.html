@@ -4,12 +4,15 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ERP Fujitec</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script>tailwind.config={theme:{extend:{colors:{brand:{50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'},accent:{DEFAULT:'#06b6d4',500:'#06b6d4',600:'#0891b2'},surface:'#0b1120',surface2:'#111827',glass:'rgba(17,24,39,0.7)',card:'rgba(17,24,39,0.5)',card2:'rgba(17,24,39,0.7)',input:'rgba(15,23,42,0.8)'},fontFamily:{sans:['Inter','sans-serif'],mono:['JetBrains Mono','monospace']}}}}</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#070b15;color:#e2e8f0;overflow-x:hidden}
+body{font-family:'Inter',sans-serif;background:#070b15;color:#e2e8f0;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+::selection{background:rgba(99,102,241,0.35);color:#fff}
+:focus-visible{outline:2px solid rgba(99,102,241,0.6);outline-offset:2px}
 /* GRADIENTE DE FUNDO ANIMADO */
 body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 20% 50%,rgba(99,102,241,0.08) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(6,182,212,0.06) 0%,transparent 50%),radial-gradient(ellipse at 50% 80%,rgba(139,92,246,0.05) 0%,transparent 50%);pointer-events:none;z-index:0;animation:bgShift 20s ease infinite}
 @keyframes bgShift{0%,100%{transform:translate(0,0)}33%{transform:translate(1%,-1%)}66%{transform:translate(-1%,1%)}}
@@ -53,8 +56,8 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
 .badge-blue{background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.2)}
 .badge-purple{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.2)}
 /* STAT CARDS */
-.stat-card{background:rgba(17,24,39,0.5);border:1px solid rgba(255,255,255,0.04);border-radius:16px;padding:20px;transition:all .25s}
-.stat-card:hover{background:rgba(17,24,39,0.7);border-color:rgba(99,102,241,0.15)}
+.stat-card{background:rgba(17,24,39,0.5);border:1px solid rgba(255,255,255,0.05);border-radius:16px;padding:20px;transition:all .25s cubic-bezier(.16,1,.3,1)}
+.stat-card:hover{background:rgba(17,24,39,0.7);border-color:rgba(99,102,241,0.15);box-shadow:0 4px 20px rgba(0,0,0,0.25)}
 /* INPUTS */
 input,select,textarea{background:rgba(15,23,42,0.8)!important;border:1px solid rgba(255,255,255,0.08)!important;border-radius:12px!important;color:#e2e8f0!important;transition:all .2s}
 input:focus,select:focus,textarea:focus{outline:none;border-color:rgba(99,102,241,0.5)!important;box-shadow:0 0 0 3px rgba(99,102,241,0.1)!important}
@@ -63,7 +66,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:rgba(99,102,24
 .progress-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.16,1,.3,1)}
 /* TOOLTIP */
 [data-tooltip]{position:relative}
-[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:6px 12px;border-radius:8px;font-size:11px;white-space:nowrap;z-index:100;border:1px solid rgba(255,255,255,0.1);pointer-events:none}
+[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.4;white-space:normal;width:max-content;max-width:240px;text-align:center;z-index:100;border:1px solid rgba(255,255,255,0.1);pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 /* SECTION DIVIDER */
 .section-title{font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
 </style>
@@ -76,15 +79,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:rgba(99,102,24
 </div>
 <div id="app-screen" class="hidden min-h-screen flex relative z-10">
   <aside class="w-60 glass-strong flex flex-col flex-shrink-0 border-r border-white/5"><div class="px-5 py-4 border-b border-white/5 flex items-center gap-3"><img src="https://fujitecbrasil.com.br/wp-content/uploads/2025/04/logo-fugitec-branca_-1.png" class="h-7 drop-shadow-lg"><span class="text-sm font-semibold text-white">ERP</span></div><nav class="flex-1 p-3 space-y-1 overflow-y-auto" id="sidebar-nav"></nav><div class="p-3 border-t border-white/5" id="sidebar-user"></div></aside>
-  <main class="flex-1 flex flex-col min-w-0"><header class="glass border-b border-white/5 px-6 py-3 flex items-center justify-between"><div><h2 class="font-semibold text-white text-sm" id="page-title"></h2><p class="text-xs text-slate-500 mt-0.5" id="page-subtitle"></p></div><button onclick="refresh()" class="btn-ghost px-4 py-2 text-xs rounded-xl flex items-center gap-2"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Atualizar</button></header><div id="content" class="flex-1 overflow-y-auto p-6 fade-up"></div></main>
+  <main class="flex-1 flex flex-col min-w-0"><header class="glass border-b border-white/5 px-6 py-3 flex items-center justify-between"><div><h2 class="font-semibold text-white text-sm" id="page-title"></h2><p class="text-xs text-slate-500 mt-0.5" id="page-subtitle"></p></div><div class="flex items-center gap-3"><div class="relative"><button onclick="toggleNotifs(event)" class="btn-ghost w-10 h-10 rounded-xl relative flex items-center justify-center text-base" title="Notificações">🔔<span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center ping" style="font-size:10px">0</span></button><div id="notif-panel" class="hidden absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] glass-strong rounded-2xl border border-white/10 z-50 max-h-[70vh] overflow-y-auto" style="box-shadow:0 20px 60px rgba(0,0,0,.5)"></div></div><button onclick="refresh()" class="btn-ghost px-4 py-2 text-xs rounded-xl flex items-center gap-2"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Atualizar</button></div></header><div id="content" class="flex-1 overflow-y-auto p-6 fade-up"></div></main>
 </div>
 <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)" onclick="if(event.target===this)hideModal()"><div class="glass-strong rounded-2xl glow-border w-full max-w-lg max-h-[85vh] overflow-y-auto fade-up"><div class="flex items-center justify-between px-5 py-4 border-b border-white/5"><h3 class="font-semibold text-white" id="mtitle"></h3><button onclick="hideModal()" class="text-slate-500 hover:text-white text-xl transition w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center">&times;</button></div><div id="mbody" class="p-5"></div><div id="mfooter" class="flex justify-end gap-3 px-5 pb-5"></div></div></div>
 <script>
 var U='https://vgvywythfbomzixfxoqd.supabase.co';
 var K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZndnl3eXRoZmJvbXppeGZ4b3FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMDA2ODIsImV4cCI6MjA5Nzc3NjY4Mn0.6-9WPdS9ez6ElP5N0iPmVhZOk8_taVmMgoFQgKBTOUk';
 var s=window.supabase.createClient(U,K);
-var u=null,p=null,pg='dashboard',pidAv=null,curDec=0,dec='',routeTarget=null;
-var sectors=[],users=[],userSectors=[],projects=[],history=[],empresas=[],stagelogs=[],FLOW=[];
+if(window.Chart){Chart.defaults.font.family='Inter, sans-serif';Chart.defaults.color='#94a3b8';Chart.defaults.plugins.tooltip.backgroundColor='#1e293b';Chart.defaults.plugins.tooltip.borderColor='rgba(255,255,255,0.1)';Chart.defaults.plugins.tooltip.borderWidth=1;}
+var u=null,p=null,pg='dashboard',pidAv=null,curDec=0,dec='',decs=[],routeTarget=null,viewingDetail=false;
+var sectors=[],users=[],userSectors=[],projects=[],history=[],empresas=[],stagelogs=[],notifs=[],FLOW=[];
 
 var $=function(q){return document.getElementById(q)};
 var E=function(v){var d=document.createElement('div');d.textContent=v||'';return d.innerHTML};
@@ -101,86 +105,235 @@ var getTimeInSector=function(pid){
   if(!lg)return 0;
   return Math.floor((Date.now()-new Date(lg.date).getTime())/86400000);
 };
-var canCreate=function(){if(!p)return false;if(p.is_ceo)return true;var ok=['Comercial','Diretoria Financeira'];return ok.indexOf(sn(p.main_sector_id))>=0};
+var canCreate=function(){if(!p)return false;if(p.is_ceo)return true;var ok=['Comercial','Diretoria Financeira'];return ok.indexOf(sn(p.main_sector_id))>=0};var isDiretoria=function(){return p&&(p.is_ceo||sn(p.main_sector_id)==='Diretoria / CEO')};var isNathalia=function(){return p&&p.name==='Nathalia'};var canDelete=function(){return isDiretoria()||isNathalia()};var canEdit=function(){return isDiretoria()||isNathalia()};
 
-// ==================== BPM: FLUXO FIXO HARDCODED ====================
-var FLOW_ORDER=[
-  'Comercial',
-  'Gestão de Projeto',
-  'Compras',
-  'Engenharia',
-  'Operações',
-  'Almoxarifado',
-  'Logística',
-  'Financeiro',
-  'Faturamento',
-  'Diretoria Financeira',
-  'Diretoria / CEO'
+// ==================== BPM 23 ETAPAS - FLUXO COMPLETO ====================
+// nextYes/nextNo: step number, -1=FIM, -2=DECLINAR, -3=VOLTA ao início
+var BPM=[
+  // 1 - COMERCIAL: Solicitação
+  {step:1, phase:'1. Solicitação de Proposta', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'Solicitação de Proposta do Cliente', decisions:[
+    {q:'Solicitação recebida?',yes:'OK',no:'-'}
+  ], nextYes:2, nextNo:2, notify:'André'},
+
+  // 2 - COMERCIAL: Alinhamento de Escopo
+  {step:2, phase:'2. Alinhamento de Escopo', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'Alinhamento de Escopo com o Cliente', decisions:[
+    {q:'Suporte Engenharia ou Survey?',yes:'Agendar Survey e cronograma',no:'Ir direto p/ Emissão de DFP'}
+  ], nextYes:3, nextNo:8, notify:'André'},
+
+  // 3 - GESTÃO: Agendar Survey
+  {step:3, phase:'3. Agendar Survey', sector:'Gestão de Projeto', uuid:'22222222-2222-2222-2222-222222222222', resp:'André', desc:'Agendar Survey e realizar cronograma. Selecionar Islan ou Robson.', decisions:[
+    {q:'Precisa de logística (transporte/hospedagem)?',yes:'Acionar Rita (Logística)',no:'Islan/Robson faz levantamento direto'}
+  ], nextYes:4, nextNo:5, notify:'André', delegar:['Robson','Islan']},
+
+  // 4 - LOGÍSTICA
+  {step:4, phase:'4. Logística da Equipe', sector:'Logística', uuid:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', resp:'Rita', desc:'Organizar Transporte e Hospedagem', decisions:[
+    {q:'Logística organizada?',yes:'Equipe pronta p/ Survey',no:'Reorganizar'}
+  ], nextYes:5, nextNo:4, notify:'André'},
+
+  // 5 - OPERAÇÕES: Survey
+  {step:5, phase:'5. Survey e Lista de Materiais', sector:'Operações', uuid:'33333333-3333-3333-3333-333333333333', resp:'Robson / Islan', desc:'Realizar Survey, Relatório e Lista de Materiais', decisions:[
+    {q:'Necessidade de materiais?',yes:'Encaminhar p/ Cotação',no:'Ir p/ Emissão de DFP'}
+  ], nextYes:6, nextNo:8, notify:'André'},
+
+  // 6 - COMPRAS: Cotação
+  {step:6, phase:'6. Cotação de Materiais', sector:'Compras', uuid:'44444444-4444-4444-4444-444444444444', resp:'Rafaela', desc:'Realizar Cotação dos Materiais', decisions:[
+    {q:'Necessidade da Engenharia?',yes:'Voltar p/ Agendar Survey',no:'Ir p/ Emissão de DFP'}
+  ], nextYes:3, nextNo:8, notify:'André'},
+
+  // 7 - FINANCEIRO: Análise
+  {step:7, phase:'7. Análise e Aprovação', sector:'Financeiro', uuid:'88888888-8888-8888-8888-888888888888', resp:'Agnaldo', desc:'Análise Financeira da Proposta', decisions:[
+    {q:'Necessidade da Diretoria?',yes:'Encaminhar p/ Diretoria e voltar',no:'Ir p/ Emissão de DFP'}
+  ], nextYes:7.1, nextNo:8, notify:'André'},
+
+  // 7.1 - DIRETORIA (sub-step)
+  {step:7.1, phase:'7.1 Diretoria (Aprovação)', sector:'Diretoria / CEO', uuid:'66666666-6666-6666-6666-666666666666', resp:'Fábio / Tainá', desc:'Validação da Diretoria', decisions:[
+    {q:'Diretoria aprovou?',yes:'Retornar p/ Emissão de DFP',no:'Aguardar (D+1)'}
+  ], nextYes:8, nextNo:7.1, notify:'André'},
+
+  // 8 - COMERCIAL: Emissão DFP
+  {step:8, phase:'8. Emissão de DFP', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'Emissão de Documento de Faturamento/Proposta', decisions:[
+    {q:'Aprovação Financeira?',yes:'Emitir e enviar Proposta',no:'Declinar pedido de cotação'}
+  ], nextYes:9, nextNo:-2, notify:'André'},
+
+  // 9 - COMERCIAL: Proposta
+  {step:9, phase:'9. Proposta Comercial', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'Emissão e envio de Proposta ao Cliente', decisions:[
+    {q:'Cliente aprovou proposta?',yes:'Receber PO/Contrato',no:'Avaliar revisão'}
+  ], nextYes:12, nextNo:9.1, notify:'André'},
+
+  // 9.1 - Decisão: É possível revisão?
+  {step:9.1, phase:'9.1 Revisão de Proposta', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'É possível revisar a proposta?', decisions:[
+    {q:'É possível revisar?',yes:'Necessita Diretoria?',no:'Declinar pedido'}
+  ], nextYes:9.2, nextNo:-2, notify:'André'},
+
+  // 9.2 - Decisão: Necessidade Diretoria?
+  {step:9.2, phase:'9.2 Análise Diretoria', sector:'Diretoria / CEO', uuid:'66666666-6666-6666-6666-666666666666', resp:'Fábio / Tainá', desc:'Necessidade da Diretoria para revisão?', decisions:[
+    {q:'Diretoria necessária?',yes:'Encaminhar p/ Financeiro',no:'Voltar p/ Emissão de DFP'}
+  ], nextYes:10, nextNo:8, notify:'André'},
+
+  // 10 - FINANCEIRO: Análise (revisão)
+  {step:10, phase:'10. Análise Financeira (Revisão)', sector:'Financeiro', uuid:'88888888-8888-8888-8888-888888888888', resp:'Agnaldo', desc:'Análise Financeira da Revisão', decisions:[
+    {q:'Análise concluída?',yes:'Voltar p/ Emissão de DFP',no:'Reanalisar'}
+  ], nextYes:8, nextNo:10, notify:'André'},
+
+  // 11 - REMOVIDO (step number skip)
+
+  // 12 - COMERCIAL: PO/Contrato
+  {step:12, phase:'12. Recebimento PO/Contrato', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'Recebimento do Pedido de Compra ou Contrato', decisions:[
+    {q:'PO/Contrato recebido?',yes:'Handover p/ Gestão e Financeiro',no:'Aguardar'}
+  ], nextYes:13, nextNo:12, notify:'André'},
+
+  // 13 - GESTÃO: Handover
+  {step:13, phase:'13. Handover + Informar Financeiro', sector:'Gestão de Projeto', uuid:'22222222-2222-2222-2222-222222222222', resp:'André / Agnaldo', desc:'Handover do projeto e informar Financeiro', decisions:[
+    {q:'Handover realizado?',yes:'Avançar p/ RCM',no:'Completar handover'}
+  ], nextYes:14, nextNo:13, notify:'André'},
+
+  // === CONECTOR A ===
+
+  // 14 - GESTÃO: RCM
+  {step:14, phase:'14. Reunião de Abertura (RCM)', sector:'Gestão de Projeto', uuid:'22222222-2222-2222-2222-222222222222', resp:'André', desc:'Reunião de Abertura de Contrato (Ponto A)', decisions:[
+    {q:'RCM realizada?',yes:'Avançar',no:'Reagendar'}
+  ], nextYes:15, nextNo:14, notify:'André'},
+
+  // 15 - ALMOXARIFADO: Materiais
+  {step:15, phase:'15. Lista Materiais + Docs Técnicos', sector:'Almoxarifado', uuid:'55555555-5555-5555-5555-555555555555', resp:'Adriele / André', desc:'Enviar Lista de Materiais e Documentação Técnica', decisions:[
+    {q:'Tem material em estoque?',yes:'Separar e identificar',no:'Emitir Ordem de Compra'}
+  ], nextYes:15.1, nextNo:15.2, notify:'André'},
+
+  // 15.1 - ALMOXARIFADO: Separar
+  {step:15.1, phase:'15.1 Separar e Identificar', sector:'Almoxarifado', uuid:'55555555-5555-5555-5555-555555555555', resp:'Adriele', desc:'Separar e identificar materiais para o projeto', decisions:[
+    {q:'Materiais separados?',yes:'Verificar necessidade de testes',no:'Continuar separação'}
+  ], nextYes:15.9, nextNo:15.1, notify:'André'},
+
+  // 15.2 - COMPRAS: Emitir OC
+  {step:15.2, phase:'15.2 Emitir Ordem de Compra', sector:'Compras', uuid:'44444444-4444-4444-4444-444444444444', resp:'Rafaela', desc:'Emitir Ordem de Compra', decisions:[
+    {q:'OC emitida?',yes:'Encaminhar p/ aprovação',no:'Corrigir'}
+  ], nextYes:15.3, nextNo:15.2, notify:'André'},
+
+  // 15.3 - FINANCEIRO: Aprovar OC
+  {step:15.3, phase:'15.3 Aprovar Ordem de Compra', sector:'Financeiro', uuid:'88888888-8888-8888-8888-888888888888', resp:'Agnaldo', desc:'Aprovação Financeira da OC', decisions:[
+    {q:'OC aprovada?',yes:'Enviar OC',no:'Revisar'}
+  ], nextYes:15.4, nextNo:15.3, notify:'André'},
+
+  // 15.4 - COMPRAS: Enviar OC
+  {step:15.4, phase:'15.4 Enviar OC', sector:'Compras', uuid:'44444444-4444-4444-4444-444444444444', resp:'Rafaela', desc:'Enviar OC para fornecedor e partes', decisions:[
+    {q:'OC enviada?',yes:'Follow Up',no:'Reenviar'}
+  ], nextYes:15.5, nextNo:15.4, notify:'André'},
+
+  // 15.5 - COMPRAS: Follow Up
+  {step:15.5, phase:'15.5 Follow Up de Compras', sector:'Compras', uuid:'44444444-4444-4444-4444-444444444444', resp:'Rafaela', desc:'Realizar Follow Up de Compras (D+1 se atrasar)', decisions:[
+    {q:'Fornecedor respondeu?',yes:'Receber materiais',no:'Cobrar (D+1 alerta)'}
+  ], nextYes:15.6, nextNo:15.5, notify:'André'},
+
+  // 15.6 - ALMOXARIFADO: Recebimento
+  {step:15.6, phase:'15.6 Recebimento dos Materiais', sector:'Almoxarifado', uuid:'55555555-5555-5555-5555-555555555555', resp:'Adriele', desc:'Recebimento e conferência dos materiais', decisions:[
+    {q:'Materiais recebidos e conferidos?',yes:'Verificar testes',no:'Notificar (D+1)'}
+  ], nextYes:15.9, nextNo:15.6, notify:'André'},
+
+  // 15.9 - Decisão: Testes?
+  {step:15.9, phase:'15.9 Verificação de Testes', sector:'Almoxarifado', uuid:'55555555-5555-5555-5555-555555555555', resp:'Adriele', desc:'Necessidade de realizar testes técnicos?', decisions:[
+    {q:'Necessidade realizar testes?',yes:'Encaminhar p/ Operações',no:'Verificar Medição'}
+  ], nextYes:16, nextNo:15.13, notify:'André'},
+
+  // 16 - OPERAÇÕES: Testes
+  {step:16, phase:'16. Testes Técnicos', sector:'Operações', uuid:'33333333-3333-3333-3333-333333333333', resp:'Robson / Islan', desc:'Verificar Especificações e realizar testes', decisions:[
+    {q:'Testes aprovados?',yes:'Verificar Medição',no:'Voltar p/ Follow Up Compras'}
+  ], nextYes:15.13, nextNo:15.5, notify:'André'},
+
+  // 15.13 - Decisão: Medição? (renumerado de 15.10 p/ evitar colisão numérica com 15.1 em JS)
+  {step:15.13, phase:'Medição / Faturamento', sector:'Financeiro', uuid:'88888888-8888-8888-8888-888888888888', resp:'Agnaldo', desc:'Necessidade de Medição?', decisions:[
+    {q:'Necessidade Medição?',yes:'Gestão solicita faturamento',no:'Comercial solicita faturamento'}
+  ], nextYes:15.11, nextNo:15.12, notify:'André'},
+
+  // 15.11 - GESTÃO: Solicitar faturamento
+  {step:15.11, phase:'Gestão solicita Faturamento', sector:'Gestão de Projeto', uuid:'22222222-2222-2222-2222-222222222222', resp:'André', desc:'Gestão de Projetos solicitar faturamento', decisions:[
+    {q:'Solicitação enviada?',yes:'Follow Up Financeiro',no:'Reenviar'}
+  ], nextYes:17, nextNo:15.11, notify:'André'},
+
+  // 15.12 - COMERCIAL: Solicitar faturamento
+  {step:15.12, phase:'Comercial solicita Faturamento', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'Comercial solicitar Faturamento', decisions:[
+    {q:'Solicitação enviada?',yes:'Follow Up Financeiro',no:'Reenviar'}
+  ], nextYes:17, nextNo:15.12, notify:'André'},
+
+  // 17 - FATURAMENTO: Follow Up
+  {step:17, phase:'17. Follow Up Financeiro', sector:'Faturamento', uuid:'88888888-8888-8888-8888-888888888888', resp:'Agnaldo / Tainá', desc:'Realizar Follow Up Financeiro', decisions:[
+    {q:'Follow Up concluído?',yes:'Avançar p/ Engenharia',no:'Continuar (D+1)'}
+  ], nextYes:18, nextNo:17, notify:'André'},
+
+  // === CONECTOR B ===
+
+  // 18 - ENGENHARIA: Análise Documentação
+  {step:18, phase:'18. Análise Documentação Técnica', sector:'Engenharia', uuid:'99999999-9999-9999-9999-999999999999', resp:'Robson / Islan', desc:'Análise da Documentação Técnica (Ponto B)', decisions:[
+    {q:'Documentação analisada?',yes:'Iniciar Projeto Executivo',no:'Revisar docs'}
+  ], nextYes:19, nextNo:18, notify:'André'},
+
+  // 19 - ENGENHARIA: Projeto Executivo
+  {step:19, phase:'19. Projeto Executivo', sector:'Engenharia', uuid:'99999999-9999-9999-9999-999999999999', resp:'Robson / Islan', desc:'Cronograma detalhado → Projeto Executivo → Handover Operações', decisions:[
+    {q:'Projeto executivo aprovado?',yes:'Handover p/ Operações',no:'Corrigir'}
+  ], nextYes:20, nextNo:19, notify:'André'},
+
+  // === CONECTOR C ===
+
+  // 20 - OPERAÇÕES: Planejamento
+  {step:20, phase:'20. Reunião de Planejamento', sector:'Operações', uuid:'33333333-3333-3333-3333-333333333333', resp:'Robson / Islan', desc:'Reunião de Planejamento (Ponto C)', decisions:[
+    {q:'Planejamento aprovado?',yes:'Iniciar execução',no:'Revisar'}
+  ], nextYes:21, nextNo:20, notify:'André'},
+
+  // 21 - OPERAÇÕES: Execução
+  {step:21, phase:'21. Execução em Campo', sector:'Operações', uuid:'33333333-3333-3333-3333-333333333333', resp:'Robson / Islan', desc:'Mobilização → Implantação → Comissionamento → Treinamento → Relatório → Aceitação → RDOs → As-Built → Termo', decisions:[
+    {q:'Execução concluída e aceita?',yes:'Encaminhar p/ AS-BUILT',no:'Corrigir (D+1)'}
+  ], nextYes:22, nextNo:21, notify:'André'},
+
+  // 22 - ENGENHARIA: AS-BUILT
+  {step:22, phase:'22. AS-BUILT / DATABOOK', sector:'Engenharia', uuid:'99999999-9999-9999-9999-999999999999', resp:'André / Islan', desc:'Compilação da Documentação Final', decisions:[
+    {q:'Documentação final aprovada?',yes:'Encaminhar p/ Diretoria',no:'Revisar'}
+  ], nextYes:23, nextNo:22, notify:'André'},
+
+  // === CONECTOR D ===
+
+  // 23 - DIRETORIA: Contrato
+  {step:23, phase:'23. Realização do Contrato', sector:'Diretoria / CEO', uuid:'66666666-6666-6666-6666-666666666666', resp:'Fábio / Tainá', desc:'Validação final do contrato (Ponto D)', decisions:[
+    {q:'Contrato validado?',yes:'Encerrar projeto',no:'Pendências'}
+  ], nextYes:24, nextNo:23, notify:'André'},
+
+  // 24 - DIRETORIA: Encerramento
+  {step:24, phase:'24. Reunião de Encerramento', sector:'Diretoria / CEO', uuid:'66666666-6666-6666-6666-666666666666', resp:'Fábio / Tainá', desc:'Reunião de Encerramento do Projeto', decisions:[
+    {q:'Projeto encerrado?',yes:'PROJETO FINALIZADO',no:'Pendências finais'}
+  ], nextYes:-1, nextNo:24, notify:'André'}
 ];
 
-var FLOW_STEPS={
-  'Comercial':{resp:'Nathalia',decisions:[
-    {q:'Escopo está alinhado?',yes:'Escopo OK',no:'Ajustar escopo'},
-    {q:'É viável executar?',yes:'Viabilidade confirmada',no:'Encerrar/renegociar'},
-    {q:'Precisa de survey técnico?',yes:'Agendar visita + lista materiais',no:'Seguir sem survey'},
-    {q:'Proposta comercial aprovada?',yes:'Emitir proposta',no:'Revisar valores'},
-    {q:'Cliente aprovou proposta?',yes:'Contrato assinado',no:'Renegociar'}
-  ],nextDefault:'Gestão de Projeto'},
-
-  'Gestão de Projeto':{resp:'André',decisions:[
-    {q:'Projeto liberado (KOM)?',yes:'Abrir KOM + plano',no:'Aguardar liberação'},
-    {q:'Precisa de compras/materiais?',yes:'Encaminhar p/ Compras',no:'Não precisa'},
-    {q:'Precisa de engenharia?',yes:'Encaminhar p/ Engenharia',no:'Ir p/ Operações'}
-  ],nextOptions:['Compras','Engenharia','Operações'],nextDefault:'Operações'},
-
-  'Compras':{resp:'Rafaela',decisions:[
-    {q:'Material em estoque?',yes:'Solicitar Almoxarifado',no:'Iniciar cotação'},
-    {q:'Fornecedor aprovado?',yes:'Emitir pedido',no:'Nova cotação'},
-    {q:'Material entregue?',yes:'Liberar p/ Almoxarifado',no:'Follow-up'}
-  ],nextDefault:'Almoxarifado'},
-
-  'Engenharia':{resp:'Islan / Robson',decisions:[
-    {q:'Documentação técnica pronta?',yes:'Liberar docs',no:'Ajuste pendente'},
-    {q:'Projeto executivo aprovado?',yes:'Liberar p/ Operações',no:'Revisar'}
-  ],nextDefault:'Operações'},
-
-  'Operações':{resp:'Islan / Robson',decisions:[
-    {q:'Equipe e material OK?',yes:'Iniciar implantação',no:'Aguardar recursos'},
-    {q:'Implantação concluída?',yes:'Comissionamento OK',no:'Continuar'},
-    {q:'Sistema validado?',yes:'Iniciar treinamento',no:'Correções'},
-    {q:'Treinamento concluído?',yes:'Treinamento OK',no:'Reforço'}
-  ],nextOptions:['Almoxarifado','Financeiro'],nextDefault:'Financeiro'},
-
-  'Almoxarifado':{resp:'Adriele',decisions:[
-    {q:'Material recebido/conferido?',yes:'Separar p/ projeto',no:'Aguardar entrega'},
-    {q:'Material correto?',yes:'Liberar p/ Logística',no:'Devolver p/ Compras'}
-  ],nextDefault:'Logística'},
-
-  'Logística':{resp:'Rita',decisions:[
-    {q:'Material separado para envio?',yes:'Rota definida',no:'Aguardar separação'},
-    {q:'Entrega realizada?',yes:'Confirmar distribuição',no:'Reprogramar entrega'}
-  ],nextDefault:'Operações'},
-
-  'Financeiro':{resp:'Agnaldo',decisions:[
-    {q:'Medição conferida/aprovada?',yes:'Liberar pagamento',no:'Revisar'},
-    {q:'Pagamento autorizado?',yes:'Encaminhar Faturamento',no:'Aguardar aprovação'}
-  ],nextDefault:'Faturamento'},
-
-  'Faturamento':{resp:'Agnaldo',decisions:[
-    {q:'Nota fiscal emitida?',yes:'NF emitida',no:'Emitir NF'},
-    {q:'Faturamento conferido?',yes:'Enviar p/ Dir. Financeira',no:'Corrigir lançamentos'}
-  ],nextDefault:'Diretoria Financeira'},
-
-  'Diretoria Financeira':{resp:'Tainá',decisions:[
-    {q:'Documentação auditada?',yes:'Auditoria OK',no:'Correções'},
-    {q:'Liberação final aprovada?',yes:'Aprovar',no:'Reavaliar'}
-  ],nextDefault:'Diretoria / CEO'},
-
-  'Diretoria / CEO':{resp:'Fábio',decisions:[
-    {q:'Projeto concluído conforme escopo?',yes:'Concluído',no:'Retornar Operações'},
-    {q:'Cliente aprovou entrega?',yes:'Encerrar projeto',no:'Correções finais'}
-  ],nextDefault:null}
-};
+// Funções auxiliares do BPM
+function getBpmStep(pr){
+  // Encontra o step atual pelo último stage_log, casando a FASE exata do BPM.
+  // (parsing por número quebrava em sub-etapas 7.1/15.x e na fase 'Medição / Faturamento' sem número)
+  var lg=stagelogs.filter(function(l){return l.project_id===pr.id}).sort(function(a,b){return new Date(b.date)-new Date(a.date)})[0];
+  if(!lg||!lg.to_stage)return 1;
+  var to=lg.to_stage;
+  if(to==='Comercial'||to==='Início'||to==='Inicio')return 1;
+  // Remove sufixo de pendência para casar a fase base
+  var base=to.replace(/ \(pendente\)$/,'');
+  var byPhase=BPM.find(function(b){return b.phase===base});
+  if(byPhase)return byPhase.step;
+  // Fallback legado: extrai número decimal, mas só retorna se o step existir de fato
+  var m=base.match(/^(\d+(?:\.\d+)?)[.\s]/);
+  if(m){var st=parseFloat(m[1]);if(getBpmByStep(st))return st;}
+  return 1;
+}
+function getBpmByStep(step){return BPM.find(function(b){return b.step===step})}
+function getBpmSectorUsers(step){
+  var b=getBpmByStep(step);if(!b)return[];
+  return gU(b.uuid);
+}
+function getBpmNextStep(step,allYes){
+  var b=getBpmByStep(step);if(!b)return null;
+  return allYes?b.nextYes:b.nextNo;
+}
+function getBpmNotifyUser(step){
+  var b=getBpmByStep(step);if(!b)return null;
+  if(!b.notify)return null;
+  var emails={André:'andre@fujitecbrasil.com.br',Nathalia:'nathalia@fujitecbrasil.com.br',Fábio:'ceo@fujitecbrasil.com.br',Tainá:'taina@fujitecbrasil.com.br'};
+  var em=emails[b.notify];if(!em)return null;
+  return users.find(function(x){return x.email===em});
+}
 
 function getVisited(pid){
   var seen=[];
@@ -189,12 +342,6 @@ function getVisited(pid){
       seen.push(l.to_stage);
   });
   return seen;
-}
-function getNextOptions(curName){
-  var fs=FLOW_STEPS[curName];if(!fs)return null;
-  if(fs.nextOptions)return fs.nextOptions;
-  if(fs.nextDefault)return[fs.nextDefault];
-  return null;
 }
 
 // ==================== UI ====================
@@ -205,32 +352,135 @@ function renderSidebar(){
   var m=[{p:'dashboard',i:'📊',l:'Dashboard'}];
   if(canCreate())m.push({p:'empresas',i:'🏢',l:'Empresas'});
   m.push({p:'fluxos',i:'📥',l:'Meus Fluxos'},{p:'projetos',i:'📋',l:'Projetos'});
-  if(p&&p.is_ceo){m.push({p:'visao',i:'🏭',l:'Visão Geral'},{p:'gargalos',i:'⚠️',l:'Gargalos'},{p:'equipe',i:'👥',l:'Equipe'},{p:'setores',i:'⚙️',l:'Setores'});}m.push({p:'historico',i:'🕐',l:'Histórico'});
-  $('sidebar-nav').innerHTML=m.map(function(x){return'<a href="#" onclick="event.preventDefault();nav(\''+x.p+'\')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200'+(pg===x.p?' bg-brand-500/15 text-brand-300 font-semibold shadow-sm shadow-brand-500/5':' text-slate-400 hover:text-white hover:bg-white/[0.04]')+'">'+x.i+' '+x.l+'</a>'}).join('');
+  m.push({p:'visao',i:'🏭',l:'Visão Geral'},{p:'gargalos',i:'⚠️',l:'Gargalos'});if(p&&p.is_ceo){m.push({p:'equipe',i:'👥',l:'Equipe'},{p:'setores',i:'⚙️',l:'Setores'});}m.push({p:'historico',i:'🕐',l:'Histórico'});
+  $('sidebar-nav').innerHTML=m.map(function(x){return'<a href="#" onclick="event.preventDefault();nav(\''+x.p+'\')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200'+(pg===x.p?' bg-brand-500/15 text-brand-300 font-semibold shadow-sm shadow-brand-500/5':' text-slate-400 hover:text-white hover:bg-white/[0.04]')+'">'+x.i+' '+x.l+'</a>'}).join('')
+    +'<div class="mt-3 pt-3 border-t border-white/5"><button onclick="verFluxoBPM()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200">📋 Fluxo BPM</button></div>';
   $('sidebar-user').innerHTML='<div class="flex items-center gap-3 px-2"><div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-brand-500/20">'+(p&&p.name?p.name[0]:'?')+'</div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">'+E(p?p.name:'')+'</p><p class="text-xs text-slate-500 truncate">'+E(p?p.email:'')+'</p></div><button onclick="logout()" class="text-slate-500 hover:text-red-400 text-lg transition-colors">⏻</button></div>';
   $('page-title').textContent={dashboard:'Dashboard',empresas:'Empresas',fluxos:'Meus Fluxos',projetos:'Projetos',visao:'Visão Geral',gargalos:'Gargalos',equipe:'Equipe',setores:'Setores',historico:'Histórico'}[pg]||'ERP';
+  if($('page-subtitle'))$('page-subtitle').textContent={dashboard:'Indicadores e desempenho em tempo real',empresas:'Clientes e empresas atendidas',fluxos:'Projetos aguardando a sua ação',projetos:'Todos os projetos e seus status',visao:'Mapa de projetos por empresa e setor',gargalos:'Projetos parados que precisam de atenção',equipe:'Colaboradores e suas funções',setores:'Setores e responsáveis',historico:'Linha do tempo das movimentações'}[pg]||'';
 }
 async function loadData(){
-  var all=await Promise.all([s.from('sectors').select('*').order('sort_order'),s.from('users_profile').select('*'),s.from('user_sectors').select('*'),s.from('projects').select('*').order('created_at',{ascending:false}),s.from('project_flow_history').select('*').order('created_at',{ascending:false}).limit(300),s.from('empresas').select('*').order('nome'),s.from('stage_logs').select('*').order('date',{ascending:false}).limit(500)]);
-  sectors=all[0].data||[];users=all[1].data||[];userSectors=all[2].data||[];projects=all[3].data||[];history=all[4].data||[];empresas=all[5].data||[];stagelogs=all[6].data||[];
-  FLOW=FLOW_ORDER;
+  var all=await Promise.all([s.from('sectors').select('*').order('sort_order'),s.from('users_profile').select('*'),s.from('user_sectors').select('*'),s.from('projects').select('*').order('created_at',{ascending:false}),s.from('project_flow_history').select('*').order('created_at',{ascending:false}).limit(300),s.from('empresas').select('*').order('nome'),s.from('stage_logs').select('*').order('date',{ascending:false}).limit(500),s.from('notifications').select('*').eq('user_id',u.id).order('created_at',{ascending:false}).limit(50)]);
+  sectors=all[0].data||[];users=all[1].data||[];userSectors=all[2].data||[];projects=all[3].data||[];history=all[4].data||[];empresas=all[5].data||[];stagelogs=all[6].data||[];notifs=all[7].data||[];
+  FLOW=BPM.map(function(b){return b.phase});
+  updateNotifBadge();
 }
 async function refresh(){await loadData();renderPage()}
-function renderPage(){switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'historico':rHistorico();break}}
-
-// ==================== DASHBOARD ====================
-function rDashboard(){
-  var mySectors=p?[p.main_sector_id].concat(userSectors.filter(function(us){return us.user_id===p.id}).map(function(us){return us.sector_id})):[];
-  var pjs=p&&p.is_ceo?projects:projects.filter(function(pr){return pr.current_responsible_user_id===u.id||mySectors.indexOf(pr.current_sector_id)>=0});
-  var total=pjs.length,concluidos=pjs.filter(function(pr){return pr.status==='Finalizado'}).length,parados=[];
-  pjs.forEach(function(pr){var d=getTimeInSector(pr.id);if(d>3&&pr.status!=='Finalizado')parados.push({p:pr,dias:d})});
-  var h='<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">'+crd('TOTAL',total,'white')+crd('EM ANDAMENTO',total-concluidos,'#60a5fa')+crd('CONCLUÍDOS',concluidos,'#4ade80')+crd('PARADOS >3d',parados.length,'#f87171')+'</div>';
-  if(parados.length>0){h+='<div class="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5"><h3 class="text-sm font-semibold text-red-400 mb-3">⚠️ PARADOS</h3><div class="space-y-2">';parados.slice(0,8).forEach(function(g){h+='<div class="flex items-center gap-3 bg-card2 rounded-xl p-3 border border-slate-700 cursor-pointer" onclick="verProjeto(\''+g.p.id+'\')"><span class="w-2 h-2 rounded-full" style="background:'+sc(g.p.current_sector_id)+'"></span><span class="text-sm text-white flex-1">'+E(g.p.name)+'</span><span class="text-xs text-red-400">'+g.dias+'d</span></div>'});h+='</div></div>';}
-  h+='<h3 class="text-sm font-semibold text-white mb-3">Por Setor</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-3">';
-  sectors.filter(function(x){return x.active}).forEach(function(sec){var c=pjs.filter(function(pr){return pr.current_sector_id===sec.id}).length;h+='<div class="bg-card2 rounded-2xl p-4 border border-slate-800 cursor-pointer" style="border-left:4px solid '+sec.color+'" onclick="filtrarSetor(\''+sec.id+'\')"><span class="text-sm font-medium text-white">'+E(sec.name)+'</span><p class="text-2xl font-bold mt-1" style="color:'+sec.color+'">'+c+'</p></div>'});h+='</div>';
-  $('content').innerHTML=h;
+function updateNotifBadge(){
+  if(!u)return;
+  var n=notifs.filter(function(x){return x.status==='pendente'}).length;
+  var badge=$('notif-badge');
+  if(!badge)return;
+  if(n>0){badge.textContent=n>99?'99+':n;badge.classList.remove('hidden')}
+  else{badge.classList.add('hidden')}
 }
-function crd(l,v,c){return'<div class="bg-card2 rounded-2xl p-5 border border-slate-800"><p class="text-xs text-slate-500">'+l+'</p><p class="text-3xl font-bold mt-1" style="color:'+c+'">'+v+'</p></div>'}
+function notifIcon(t){return{flow_received:'✅',stalled:'⛔',finalized:'🏁',declined:'❌',delayed:'⏰',approval_requested:'🖊️',step_completed:'☑️'}[t]||'🔔'}
+function toggleNotifs(e){if(e)e.stopPropagation();var pnl=$('notif-panel');if(!pnl)return;if(pnl.classList.contains('hidden')){renderNotifs();pnl.classList.remove('hidden')}else{pnl.classList.add('hidden')}}
+function renderNotifs(){
+  var pnl=$('notif-panel');if(!pnl)return;
+  var unread=notifs.filter(function(x){return x.status==='pendente'}).length;
+  var h='<div class="flex items-center justify-between px-4 py-3 border-b border-white/5 sticky top-0 glass-strong z-10"><span class="text-sm font-semibold text-white">Notificações</span>'+(unread>0?'<button onclick="markAllNotifsRead(event)" class="text-xs text-brand-400 hover:text-brand-300">Marcar todas lidas</button>':'')+'</div>';
+  if(notifs.length===0){h+='<div class="text-center py-10 text-slate-500 text-sm"><div class="text-3xl mb-2">📭</div>Nenhuma notificação</div>';pnl.innerHTML=h;return}
+  h+='<div class="divide-y divide-white/5">';
+  notifs.slice(0,30).forEach(function(nt){
+    var un=nt.status==='pendente';
+    h+='<div class="px-4 py-3 flex gap-3 cursor-pointer hover:bg-white/[0.03] transition'+(un?' bg-brand-500/5':'')+'" onclick="openNotif(\''+nt.id+'\',\''+(nt.project_id||'')+'\')"><span class="text-base flex-shrink-0">'+notifIcon(nt.type)+'</span><div class="flex-1 min-w-0"><p class="text-xs font-semibold text-white truncate">'+E(nt.title||'')+'</p><p class="text-xs text-slate-400 mt-0.5 break-words">'+E(nt.message||'')+'</p><p class="text-[10px] text-slate-600 mt-1">'+ago(nt.created_at)+'</p></div>'+(un?'<span class="w-2 h-2 rounded-full bg-brand-400 flex-shrink-0 mt-1"></span>':'')+'</div>';
+  });
+  h+='</div>';
+  pnl.innerHTML=h;
+}
+async function openNotif(id,pid){var nt=notifs.find(function(x){return x.id===id});if(nt&&nt.status==='pendente'){nt.status='enviado';try{await s.from('notifications').update({status:'enviado'}).eq('id',id)}catch(e){}updateNotifBadge()}var pnl=$('notif-panel');if(pnl)pnl.classList.add('hidden');if(pid)verProjeto(pid)}
+async function markAllNotifsRead(e){if(e)e.stopPropagation();var ids=notifs.filter(function(x){return x.status==='pendente'}).map(function(x){return x.id});if(!ids.length)return;notifs.forEach(function(x){x.status='enviado'});try{await s.from('notifications').update({status:'enviado'}).in('id',ids)}catch(err){}updateNotifBadge();renderNotifs()}
+// Tempo real: recarrega a cada 30s, mas sem tirar o usuário do lugar
+var realtimeInterval=setInterval(async function(){
+  if(!u)return;
+  var modalOpen=$('modal')&&!$('modal').classList.contains('hidden');
+  // Com modal aberto ou vendo detalhe de projeto: atualiza dados/badge em silêncio, sem re-renderizar a tela
+  if(modalOpen||viewingDetail){await loadData();return}
+  await loadData();renderPage();
+},30000);
+function renderPage(){viewingDetail=false;switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'historico':rHistorico();break}}
+
+// ==================== DASHBOARD EXECUTIVO ====================
+var dashCharts=[];
+function destroyCharts(){dashCharts.forEach(function(c){try{c.destroy()}catch(e){}});dashCharts=[]}
+function fmtBRL(v){return(parseFloat(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+var STATUS_COLORS={'Novo':'#60a5fa','Em alinhamento':'#818cf8','Em andamento':'#a78bfa','Em execução':'#8b5cf6','Concluído':'#4ade80','Finalizado':'#22c55e','Cancelado':'#f87171','Cancelado / Declinado':'#f87171','Declinado':'#f87171'};
+function statusColor(st){return STATUS_COLORS[st]||'#94a3b8'}
+function isFinal(pr){return pr.status==='Finalizado'||pr.status==='Concluído'}
+function isCancel(pr){return(pr.status||'').indexOf('Cancel')>=0||(pr.status||'').indexOf('Declin')>=0}
+function isActive(pr){return!isFinal(pr)&&!isCancel(pr)}
+function monthKey(d){var x=new Date(d);return x.getFullYear()+'-'+('0'+(x.getMonth()+1)).slice(-2)}
+var MES_ABR=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function monthLabel(k){var pp=k.split('-');return MES_ABR[parseInt(pp[1])-1]+'/'+pp[0].slice(2)}
+function last6Months(){var out=[],d=new Date();for(var i=5;i>=0;i--){var x=new Date(d.getFullYear(),d.getMonth()-i,1);out.push(x.getFullYear()+'-'+('0'+(x.getMonth()+1)).slice(-2))}return out}
+
+function rDashboard(){
+  destroyCharts();
+  var mySectors=p?[p.main_sector_id].concat(userSectors.filter(function(us){return us.user_id===p.id}).map(function(us){return us.sector_id})):[];
+  var isCeo=p&&p.is_ceo;
+  var pjs=isCeo?projects:projects.filter(function(pr){return pr.current_responsible_user_id===u.id||mySectors.indexOf(pr.current_sector_id)>=0});
+  var total=pjs.length;
+  var finalizados=pjs.filter(isFinal).length;
+  var ativos=pjs.filter(isActive);
+  var parados=[];ativos.forEach(function(pr){var d=getTimeInSector(pr.id);if(d>3)parados.push({p:pr,dias:d})});
+  parados.sort(function(a,b){return b.dias-a.dias});
+  var taxa=total>0?Math.round(finalizados/total*100):0;
+  var somaDias=0;ativos.forEach(function(pr){somaDias+=getTimeInSector(pr.id)});
+  var tempoMedio=ativos.length>0?Math.round(somaDias/ativos.length):0;
+  var atrasados=ativos.filter(function(pr){return pr.deadline_at&&new Date(pr.deadline_at)<new Date()});
+  var nome=p&&p.name?p.name.split(' ')[0]:'';
+  var h='<div class="mb-6"><h2 class="text-xl font-bold text-white">Olá, '+E(nome)+' 👋</h2><p class="text-sm text-slate-400 mt-0.5">'+(isCeo?'Visão executiva de toda a operação — dados em tempo real':'Resumo dos seus projetos e do seu setor')+'</p></div>';
+  h+='<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">';
+  h+=kpi('📁','Total de Projetos',total,'#818cf8','Todos os projetos cadastrados no seu escopo de acesso');
+  h+=kpi('🔄','Em Andamento',ativos.length,'#60a5fa','Projetos ativos, que ainda não foram finalizados nem cancelados');
+  h+=kpi('✅','Finalizados',finalizados,'#4ade80','Projetos já concluídos com sucesso');
+  h+=kpi('⏰','Parados +3 dias',parados.length,parados.length?'#f87171':'#4ade80','Projetos sem movimento há mais de 3 dias no setor atual — merecem atenção');
+  h+=kpi('📊','Taxa de Conclusão',taxa+'%',taxa>=50?'#4ade80':'#facc15','Percentual de projetos finalizados em relação ao total');
+  h+=kpi('⏱️','Tempo Médio no Setor',tempoMedio+'d',tempoMedio>3?'#f87171':'#4ade80','Média de dias que os projetos ativos estão parados no setor atual');
+  h+=kpi('🚩','Prazo Estourado',atrasados.length,atrasados.length?'#f87171':'#4ade80','Projetos ativos cuja data de entrega prevista já passou');
+  h+='</div>';
+  h+='<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">';
+  h+=chartCard('Projetos por Status','Como estão distribuídos os projetos hoje','ch-status');
+  h+=chartCard('Evolução Mensal','Criados x finalizados nos últimos 6 meses','ch-evol');
+  h+='</div>';
+  h+='<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">';
+  h+=chartCard('Projetos Ativos por Setor','Onde estão concentrados os projetos em andamento','ch-setor');
+  h+=chartCard('Projetos por Empresa','Volume de projetos por cliente','ch-emp');
+  h+='</div>';
+  if(parados.length>0){
+    h+='<div class="mb-6 bg-red-500/5 border border-red-500/20 rounded-2xl p-5"><h3 class="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">⚠️ Precisam de atenção <span class="badge badge-red">'+parados.length+'</span></h3><div class="space-y-2">';
+    parados.slice(0,8).forEach(function(g){h+='<div class="flex items-center gap-3 bg-card2 rounded-xl p-3 border border-slate-700 cursor-pointer hover:ring-1 hover:ring-red-500/30 transition" onclick="verProjeto(\''+g.p.id+'\')"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:'+sc(g.p.current_sector_id)+'"></span><span class="text-sm text-white flex-1 min-w-0 truncate">'+E(g.p.name)+'</span><span class="badge hidden md:inline-block" style="background:'+sc(g.p.current_sector_id)+'20;color:'+sc(g.p.current_sector_id)+'">'+sn(g.p.current_sector_id)+'</span><span class="text-xs text-red-400 font-semibold w-12 text-right">'+g.dias+'d</span></div>'});
+    h+='</div></div>';
+  }
+  h+='<h3 class="section-title">Distribuição por Setor</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-3">';
+  sectors.filter(function(x){return x.active}).forEach(function(sec){var c=ativos.filter(function(pr){return pr.current_sector_id===sec.id}).length;h+='<div class="bg-card2 rounded-2xl p-4 border border-slate-800 cursor-pointer card-hover" style="border-left:4px solid '+sec.color+'" onclick="filtrarSetor(\''+sec.id+'\')"><span class="text-sm font-medium text-white">'+E(sec.name)+'</span><p class="text-2xl font-bold mt-1" style="color:'+sec.color+'">'+c+'</p></div>'});h+='</div>';
+  $('content').innerHTML=h;
+  buildDashCharts(pjs,ativos);
+}
+function kpi(icon,label,val,color,tip){return'<div class="stat-card card-hover" style="border-top:2px solid '+color+'40" data-tooltip="'+tip+'"><div class="flex items-center justify-between"><span class="text-lg">'+icon+'</span><span class="w-1.5 h-1.5 rounded-full" style="background:'+color+'"></span></div><p class="text-xs text-slate-500 uppercase tracking-wide font-medium mt-2">'+label+'</p><p class="text-2xl font-bold mt-1" style="color:'+color+'">'+val+'</p></div>'}
+function chartCard(title,sub,id){return'<div class="glass rounded-2xl p-5 border border-white/5"><h3 class="text-sm font-semibold text-white">'+title+'</h3><p class="text-xs text-slate-500 mb-3">'+sub+'</p><div style="position:relative;height:240px"><canvas id="'+id+'"></canvas></div></div>'}
+function crd(l,v,c){var col=(c==='white'||!c)?'#e2e8f0':c;return'<div class="stat-card card-hover" style="border-top:2px solid '+col+'40"><div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full" style="background:'+col+'"></span><p class="text-xs text-slate-500 uppercase tracking-wide font-medium">'+l+'</p></div><p class="text-3xl font-bold mt-2" style="color:'+col+'">'+v+'</p></div>'}
+function buildDashCharts(pjs,ativos){
+  if(!window.Chart)return;
+  var stCount={};pjs.forEach(function(pr){var st=pr.status||'Novo';stCount[st]=(stCount[st]||0)+1});
+  var stKeys=Object.keys(stCount);
+  mkDoughnut('ch-status',stKeys,stKeys.map(function(k){return stCount[k]}),stKeys.map(statusColor));
+  var months=last6Months();
+  var criados=months.map(function(m){return pjs.filter(function(pr){return pr.created_at&&monthKey(pr.created_at)===m}).length});
+  var fins=months.map(function(m){return pjs.filter(function(pr){return pr.finalized_at&&monthKey(pr.finalized_at)===m}).length});
+  mkLine('ch-evol',months.map(monthLabel),[{label:'Criados',data:criados,color:'#60a5fa'},{label:'Finalizados',data:fins,color:'#4ade80'}]);
+  var secs=sectors.filter(function(x){return x.active});
+  var secL=[],secF=[],secC=[];secs.forEach(function(sec){var n=ativos.filter(function(pr){return pr.current_sector_id===sec.id}).length;if(n>0){secL.push(sec.name);secF.push(n);secC.push(sec.color==='#ffffff'?'#e2e8f0':sec.color)}});
+  mkBar('ch-setor',secL,secF,secC,true);
+  var empCount={};pjs.forEach(function(pr){if(!pr.empresa_id)return;empCount[pr.empresa_id]=(empCount[pr.empresa_id]||0)+1});
+  var empArr=Object.keys(empCount).map(function(e){return{nome:(empresas.find(function(x){return x.id===e})||{}).nome||'—',n:empCount[e]}}).sort(function(a,b){return b.n-a.n}).slice(0,8);
+  mkBar('ch-emp',empArr.map(function(x){return x.nome}),empArr.map(function(x){return x.n}),empArr.map(function(){return'#818cf8'}),false);
+}
+function mkDoughnut(id,labels,data,colors){var el=$(id);if(!el)return;if(!data.length){emptyChart(el);return}dashCharts.push(new Chart(el,{type:'doughnut',data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderColor:'rgba(15,23,42,0.6)',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right',labels:{color:'#cbd5e1',font:{size:11},boxWidth:12,padding:10}}}}}))}
+function mkLine(id,labels,series){var el=$(id);if(!el)return;dashCharts.push(new Chart(el,{type:'line',data:{labels:labels,datasets:series.map(function(sr){return{label:sr.label,data:sr.data,borderColor:sr.color,backgroundColor:sr.color+'22',fill:true,tension:.35,pointRadius:3,pointBackgroundColor:sr.color}})},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1',font:{size:11},boxWidth:12}}},scales:{x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(255,255,255,0.04)'}},y:{beginAtZero:true,ticks:{color:'#94a3b8',precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}}))}
+function mkBar(id,labels,data,colors,horizontal){var el=$(id);if(!el)return;if(!data.length){emptyChart(el);return}dashCharts.push(new Chart(el,{type:'bar',data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderRadius:6,maxBarThickness:34}]},options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return' '+c.parsed[horizontal?'x':'y']+' projeto(s)'}}}},scales:{x:{ticks:{color:'#94a3b8',precision:0},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#94a3b8',precision:0},grid:{color:'rgba(255,255,255,0.04)'}}}}}))}
+function emptyChart(el){var d=document.createElement('div');d.className='flex items-center justify-center h-full text-slate-600 text-xs';d.textContent='Sem dados ainda';el.parentNode.replaceChild(d,el)}
 function filtrarSetor(sid){pg='projetos';renderSidebar();rProjetosSetor(sid)}
 
 // ==================== EMPRESAS ====================
@@ -255,108 +505,129 @@ function renderList(pjs,ttl){
   pjs.forEach(function(pr){var b=pr.current_responsible_user_id===u.id?'border-red-500':'border-slate-700';var dias=getTimeInSector(pr.id);var td=dias>3?'text-red-400':dias>1?'text-yellow-400':'text-green-400';h+='<div class="bg-card2 rounded-2xl p-5 border '+b+' hover:ring-1 hover:ring-brand-500/30 transition fade-up"><div class="flex justify-between items-start"><div class="cursor-pointer flex-1" onclick="verProjeto(\''+pr.id+'\')"><span class="text-xs text-slate-500 font-mono">#'+E(pr.code||'')+'</span><h3 class="font-semibold text-white mt-1">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'---')+'</p></div><div class="flex gap-1"><button onclick="event.stopPropagation();showEditarProjeto(\''+pr.id+'\')" class="text-xs px-3 py-1.5 rounded-xl bg-input text-slate-300">✏️</button><button onclick="event.stopPropagation();showAvancar(\''+pr.id+'\')" class="text-xs px-3 py-1.5 rounded-xl bg-brand-600 text-white">▶ Avançar</button></div></div><div class="flex gap-3 mt-3 text-xs"><span style="color:'+sc(pr.current_sector_id)+'">● '+sn(pr.current_sector_id)+'</span><span class="'+td+'">⏱ '+dias+'d</span><span class="text-slate-500">👤 '+un(pr.current_responsible_user_id)+'</span></div></div>'});h+='</div>';$('content').innerHTML=h;
 }
 function showNovoProjeto(){
-  var comSid=gS('Comercial');
-  var us=gSUsers(comSid);
-  showModal('Novo Projeto','<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome *</label><input id="np-nome" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-slate-400">Código</label><input id="np-code" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">Cliente</label><input id="np-client" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div></div><div><label class="text-xs text-slate-400">Empresa *</label><select id="np-emp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+empresas.map(function(x){return'<option value="'+x.id+'">'+E(x.nome)+'</option>'}).join('')+'</select></div><div><label class="text-xs text-slate-400">Responsável (Comercial)</label><select id="np-resp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+us.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('')+'</select></div></div>','<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="criarProjeto()" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Criar</button>')
+  var comSid='11111111-1111-1111-1111-111111111111';
+  var us=gU(comSid);
+  showModal('Novo Projeto','<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome *</label><input id="np-nome" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-slate-400">Código</label><input id="np-code" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">Cliente</label><input id="np-client" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div></div><div><label class="text-xs text-slate-400">Empresa *</label><select id="np-emp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+empresas.map(function(x){return'<option value="'+x.id+'">'+E(x.nome)+'</option>'}).join('')+'</select></div><div><label class="text-xs text-slate-400">Responsável (Comercial)</label><select id="np-resp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+us.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('')+'</select></div><div><label class="text-xs text-slate-400">Prazo de Entrega</label><input id="np-prazo" type="date" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">Prioridade</label><select id="np-prio" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"><option>Normal</option><option>Baixa</option><option>Alta</option><option>Urgente</option></select></div></div>','<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="criarProjeto()" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Criar</button>')
 }
-async function criarProjeto(){var nome=$('np-nome').value.trim();if(!nome)return alert('Nome obrigatório');var eid=$('np-emp').value;if(!eid)return alert('Selecione empresa');var comSid=gS('Comercial');var resp=$('np-resp').value||u.id;await s.from('projects').insert({name:nome,code:$('np-code').value.trim(),client_name:$('np-client').value.trim(),empresa_id:eid,current_sector_id:comSid,current_responsible_user_id:resp,created_by:u.id,status:'Novo',start_date:new Date().toISOString()});await s.from('stage_logs').insert({project_id:(await s.from('projects').select('id').order('created_at',{ascending:false}).limit(1)).data[0].id,from_stage:'Início',to_stage:'Comercial',user_id:u.id,notes:'Projeto criado'});hideModal();await loadData();renderPage()}
-function showEditarProjeto(pid){var pr=projects.find(function(x){return x.id===pid});if(!pr)return;showModal('Editar Projeto','<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome</label><input id="edp-nome" value="'+E(pr.name)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-slate-400">Código</label><input id="edp-code" value="'+E(pr.code)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">Cliente</label><input id="edp-client" value="'+E(pr.client_name)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div></div><div><label class="text-xs text-slate-400">Status</label><select id="edp-status" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"><option>Novo</option><option>Em andamento</option><option>Concluído</option><option>Finalizado</option><option>Cancelado</option></select></div></div>','<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="salvarProjeto(\''+pid+'\')" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Salvar</button>')}
-async function salvarProjeto(pid){await s.from('projects').update({name:$('edp-nome').value.trim(),code:$('edp-code').value.trim(),client_name:$('edp-client').value.trim(),status:$('edp-status').value}).eq('id',pid);hideModal();await loadData();renderPage()}
+async function criarProjeto(){var nome=$('np-nome').value.trim();if(!nome)return alert('Nome obrigatório');var eid=$('np-emp').value;if(!eid)return alert('Selecione empresa');var comSid='11111111-1111-1111-1111-111111111111';var resp=$('np-resp').value||u.id;var ins=await s.from('projects').insert({name:nome,code:$('np-code').value.trim(),client_name:$('np-client').value.trim(),empresa_id:eid,current_sector_id:comSid,current_responsible_user_id:resp,created_by:u.id,status:'Novo',start_date:new Date().toISOString(),deadline_at:$('np-prazo').value?new Date($('np-prazo').value).toISOString():null,priority:$('np-prio').value||'Normal'}).select('id').single();if(ins.error||!ins.data){alert('Erro ao criar projeto: '+((ins.error&&ins.error.message)||'desconhecido'));return}await s.from('stage_logs').insert({project_id:ins.data.id,from_stage:'Início',to_stage:'Comercial',user_id:u.id,notes:'Projeto criado'});hideModal();await loadData();renderPage()}
+function showEditarProjeto(pid){var pr=projects.find(function(x){return x.id===pid});if(!pr)return;showModal('Editar Projeto','<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome</label><input id="edp-nome" value="'+E(pr.name)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div class="grid grid-cols-2 gap-3"><div><label class="text-xs text-slate-400">Código</label><input id="edp-code" value="'+E(pr.code)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">Cliente</label><input id="edp-client" value="'+E(pr.client_name)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div></div><div><label class="text-xs text-slate-400">Status</label><select id="edp-status" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+['Novo','Em andamento','Concluído','Finalizado','Cancelado'].map(function(o){return'<option'+(pr.status===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select></div><div><label class="text-xs text-slate-400">Prazo de Entrega</label><input id="edp-prazo" type="date" value="'+(pr.deadline_at?pr.deadline_at.slice(0,10):'')+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div><div><label class="text-xs text-slate-400">Prioridade</label><select id="edp-prio" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+['Normal','Baixa','Alta','Urgente'].map(function(o){return'<option'+(pr.priority===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select></div></div>','<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="salvarProjeto(\''+pid+'\')" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Salvar</button>')}
+async function salvarProjeto(pid){var upd={name:$('edp-nome').value.trim(),code:$('edp-code').value.trim(),client_name:$('edp-client').value.trim(),status:$('edp-status').value,deadline_at:$('edp-prazo').value?new Date($('edp-prazo').value).toISOString():null,priority:$('edp-prio').value};if($('edp-status').value==='Finalizado')upd.finalized_at=new Date().toISOString();await s.from('projects').update(upd).eq('id',pid);hideModal();await loadData();renderPage()}
+
+// ==================== VER FLUXO BPM COMPLETO ====================
+function verFluxoBPM(){
+  var h='<div class="space-y-2">';
+  BPM.forEach(function(b){
+    var color=b.step<=4?'#22c55e':b.step<=8?'#6366f1':b.step<=12?'#f59e0b':b.step<=16?'#3b82f6':'#eab308';
+    h+='<div class="glass rounded-xl p-3 border border-white/5 flex items-center gap-3">';
+    h+='<div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:'+color+'">'+b.step+'</div>';
+    h+='<div class="flex-1 min-w-0"><p class="text-sm font-semibold text-white">'+b.phase+'</p><p class="text-xs text-slate-400">'+b.desc+'</p><p class="text-xs text-brand-400 mt-0.5">👤 '+b.resp+' | 🏢 '+b.sector+'</p></div>';
+    if(b.nextYes!==-1)h+='<span class="text-slate-600 text-lg flex-shrink-0">↓</span>';
+    h+='</div>';
+  });
+  h+='</div>';
+  showModal('📋 Fluxo BPM ('+BPM.length+' fases)',h,'<button onclick="hideModal()" class="btn-ghost px-4 py-2 text-xs rounded-xl">Fechar</button>');
+}
 
 // ==================== MOTOR DE AVANÇO BPM ====================
 async function showAvancar(pid){
   pidAv=pid;curDec=0;dec='';routeTarget=null;
   var pr=projects.find(function(x){return x.id===pid});if(!pr)return;
-  var curName=sn(pr.current_sector_id);
-  if(FLOW_ORDER.indexOf(curName)<0){alert('Setor '+curName+' não está no fluxo BPM');return}
-  var fs=FLOW_STEPS[curName]||FLOW_STEPS['Comercial'];
-  decs=fs.decisions||[];
-  var visited=getVisited(pid);
-  var nextOpts=getNextOptions(curName);
-  rBpmSetor(pr,curName,fs,nextOpts,visited);
+  if(pr.status==='Finalizado'||pr.status==='Cancelado'){alert('Projeto já encerrado ('+pr.status+'). Não é possível avançar.');return;}
+  var curStep=getBpmStep(pr);
+  var b=getBpmByStep(curStep);if(!b){alert('Fase nao encontrada');return}
+  decs=b.decisions||[];
+  rBpmSetor(pr,b);
 }
-function rBpmSetor(pr,curName,fs,nextOpts,visited){
-  var b='<div class="space-y-4"><div class="bg-card rounded-2xl p-4 border border-slate-700"><p class="text-xs text-slate-500">SETOR ATUAL</p><p class="text-lg font-bold" style="color:'+sc(pr.current_sector_id)+'">🟢 '+curName+'</p><p class="text-xs text-slate-500 mt-2">👤 Responsável: <span class="text-white">'+E(fs.resp)+'</span></p></div>';
-  if(nextOpts&&nextOpts.length>0){
-    b+='<div class="bg-card rounded-2xl p-4 border border-brand-500/30"><p class="text-xs text-slate-500">PRÓXIMO →</p><p class="text-lg font-bold text-brand-400">'+nextOpts.join(' | ')+'</p>';
-    if(nextOpts.length>1)b+='<p class="text-xs text-yellow-400 mt-1">⚠️ Escolha a rota após decisões</p>';
-    b+='</div>';
-  }else if(nextOpts===null){
-    b+='<div class="bg-card rounded-2xl p-4 border border-green-500/30 text-center"><p class="text-lg font-bold text-green-400">🏁 ÚLTIMO SETOR</p></div>';
-  }
-  if(visited.length>0)b+='<div class="text-xs text-slate-600">Setores percorridos: '+visited.join(' → ')+'</div>';
-  b+='</div>';
-  $('mtitle').textContent='📍 Setor - '+E(pr.name);
-  $('mbody').innerHTML=b;
-  $('mfooter').innerHTML='<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="rDec()" class="px-6 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium">Iniciar Decisões →</button>';
+function rBpmSetor(pr,b){
+  var b2='<div class="space-y-4"><div class="glass rounded-2xl p-4 border border-white/5"><p class="text-xs text-slate-500">'+b.phase+'</p><p class="text-sm text-slate-400 mt-0.5">'+b.desc+'</p><p class="text-xs mt-2">👤 <span class="text-white">'+b.resp+'</span> | 🏢 <span class="text-slate-400">'+b.sector+'</span></p></div>';
+  if(b.nextYes===-1){b2+='<div class="glass rounded-2xl p-4 border border-green-500/20 text-center"><p class="text-lg font-bold text-green-400">🏁 ULTIMA FASE</p></div>'}
+  else{var nb=getBpmByStep(b.nextYes);b2+='<div class="glass rounded-2xl p-4 border border-brand-500/20"><p class="text-xs text-slate-500">✅ SIM →</p><p class="text-sm font-bold text-brand-400">'+(nb?nb.phase:'Fase '+b.nextYes)+'</p></div>'}
+  b2+='</div>';
+  $('mtitle').textContent=b.phase+' - '+E(pr.name);
+  $('mbody').innerHTML=b2;
+  $('mfooter').innerHTML='<button onclick="hideModal()" class="btn-ghost px-4 py-2 text-xs rounded-xl">Cancelar</button><button onclick="rDec()" class="btn-primary px-6 py-3 text-xs rounded-xl font-medium">Abrir Decisao →</button>';
   $('modal').classList.remove('hidden');
 }
 function rDec(){
-  if(curDec>=decs.length){rBpmRoute();return}
-  var d=decs[curDec],pr=projects.find(function(x){return x.id===pidAv}),curName=sn(pr.current_sector_id);
-  $('mtitle').textContent='❓ Decisão '+(curDec+1)+'/'+decs.length+' - '+E(pr.name);
-  var b='<div class="text-center py-4"><div class="bg-card rounded-2xl p-6 border border-yellow-500/30"><p class="text-xs text-slate-500 mb-1">'+curName+'</p><p class="text-lg font-semibold text-white mb-2">'+d.q+'</p><div class="flex gap-4 justify-center mt-6"><button onclick="rDecResult(\'✅ '+d.yes+'\')" class="px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl text-base font-bold transition">✅ SIM<br><span class="text-xs font-normal">'+d.yes+'</span></button><button onclick="rDecResult(\'❌ '+d.no+'\')" class="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-base font-bold transition">❌ NÃO<br><span class="text-xs font-normal">'+d.no+'</span></button></div></div></div>';
-  $('mbody').innerHTML=b;
-  $('mfooter').innerHTML='<button onclick="if(curDec>0){curDec--;rDec()}else{showAvancar(pidAv)}" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">← Voltar</button>';
+  if(curDec>=decs.length){rBpmFinal();return}
+  var d=decs[curDec],pr=projects.find(function(x){return x.id===pidAv}),b=getBpmByStep(getBpmStep(pr));
+  $('mtitle').textContent='Decisao - '+E(pr.name);
+  var b2='<div class="text-center py-4"><div class="glass rounded-2xl p-6 border border-yellow-500/20"><p class="text-xs text-slate-500 mb-1">'+(b?b.phase:'')+'</p><p class="text-lg font-semibold text-white mb-2">'+d.q+'</p><div class="flex gap-4 justify-center mt-6"><button onclick="rDecResult(true)" class="px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl text-base font-bold transition">✅ SIM<br><span class="text-xs font-normal">'+d.yes+'</span></button><button onclick="rDecResult(false)" class="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-base font-bold transition">❌ NAO<br><span class="text-xs font-normal">'+d.no+'</span></button></div></div></div>';
+  $('mbody').innerHTML=b2;
+  $('mfooter').innerHTML='<button onclick="if(curDec>0){curDec--;rDec()}else{showAvancar(pidAv)}" class="btn-ghost px-4 py-2 text-xs rounded-xl">← Voltar</button>';
 }
-function rDecResult(r){dec+=(dec?' | ':'')+r;curDec++;rDec()}
-
-function rBpmRoute(){
-  var pr=projects.find(function(x){return x.id===pidAv});if(!pr)return;
-  var curName=sn(pr.current_sector_id);
-  var nextOpts=getNextOptions(curName);
-  if(nextOpts===null){rBpmFinal();return}
-  if(nextOpts.length===1){routeTarget=nextOpts[0];rBpmFinal();return}
-  // Múltiplas rotas → escolha
-  $('mtitle').textContent='🔀 Escolha o destino - '+E(pr.name);
-  var b='<div class="space-y-3"><p class="text-sm text-slate-300">Decisões:</p><div class="bg-card rounded-2xl p-3 border border-slate-700"><p class="text-xs text-slate-300">'+E(dec)+'</p></div><p class="text-sm text-slate-400 mt-4">Para qual setor enviar?</p><div class="space-y-2">';
-  nextOpts.forEach(function(ns){var fs=FLOW_STEPS[ns];b+='<button onclick="routeTarget=\''+ns+'\';rBpmFinal()" class="w-full px-4 py-3 bg-card2 border border-slate-700 rounded-xl text-left hover:border-brand-500 transition"><span class="font-medium text-white">'+ns+'</span><span class="text-xs text-slate-500 ml-2">👤 '+E(fs?fs.resp:'')+'</span></button>'});
-  b+='</div></div>';
-  $('mbody').innerHTML=b;
-  $('mfooter').innerHTML='<button onclick="curDec=Math.max(0,decs.length-1);rDec()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">← Voltar</button>';
-}
+function rDecResult(isYes){dec+=(dec?' | ':'')+(isYes?'✅':'❌');curDec++;rDec()}
 
 function rBpmFinal(){
   var pr=projects.find(function(x){return x.id===pidAv});if(!pr)return;
-  var curName=sn(pr.current_sector_id);
-  var nxtSector=routeTarget;
-  var us=gSUsers(pr.current_sector_id);
-  if(us.length===0)return alert('Sem colaboradores vinculados ao setor '+curName+'!');
-  var opts=us.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('');
+  var curStep=getBpmStep(pr);
+  var b=getBpmByStep(curStep);if(!b)return;
   var allYes=dec.indexOf('❌')<0;
-  $('mtitle').textContent='✅ Finalizar - '+E(pr.name);
-  var b='<div class="space-y-4"><div class="bg-card rounded-2xl p-3 border border-slate-700"><p class="text-xs text-slate-500">Decisões:</p><p class="text-sm text-slate-300 mt-1">'+E(dec)+'</p></div>';
-  if(nxtSector){b+='<div class="bg-card rounded-2xl p-3 border '+(allYes?'border-green-500/30':'border-red-500/30')+' text-center"><p class="text-sm font-bold '+(allYes?'text-green-400':'text-red-400')+'\">'+(allYes?'✅ Avançar p/ '+nxtSector:'❌ Pendências em '+curName)+'</p></div>'}
-  else{b+='<div class="bg-card rounded-2xl p-3 border border-green-500/30 text-center"><p class="text-sm font-bold text-green-400">🏁 Projeto será finalizado</p></div>'}
-  b+='<div><label class="text-xs text-slate-400">Responsável ('+curName+') *</label><select id="av-resp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm mt-1">'+opts+'</select></div><div><label class="text-xs text-slate-400">Observação</label><textarea id="av-notes" rows="2" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm mt-1">'+E(dec)+'</textarea></div></div>';
-  $('mbody').innerHTML=b;
-  $('mfooter').innerHTML='<button onclick="if(decs.length>1){curDec=Math.max(0,decs.length-1);rDec()}else{showAvancar(pidAv)}" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">← Voltar</button><button onclick="doAv()" class="px-6 py-3 bg-green-600 text-white rounded-xl text-sm font-medium">✅ Confirmar</button>';
+  var nxtStep=allYes?b.nextYes:b.nextNo;
+  var nb=getBpmByStep(nxtStep);
+  // Colaboradores do PRÓXIMO setor
+  var nxtUsers=nb?gU(nb.uuid):getBpmSectorUsers(curStep);
+  if(!nxtUsers||nxtUsers.length===0)nxtUsers=gU(b.uuid);
+  if(nxtUsers.length===0)return alert('Sem colaboradores');
+  var opts=nxtUsers.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('');
+  // Delegação
+  var delOpts='';
+  if(b.delegar&&p&&p.name==='André'){
+    var dels=users.filter(function(x){return b.delegar.indexOf(x.name.split(' ')[0])>=0});
+    delOpts='<div><label class="text-xs text-amber-400 mt-2">Delegar para:</label><div class="flex gap-2 mt-1">'+
+      dels.map(function(x){return'<label class="flex items-center gap-1 text-xs text-slate-300 cursor-pointer"><input type="radio" name="av-delegar" value="'+x.name+'" class="accent-amber-500"> '+x.name+'</label>'}).join('')+
+    '</div></div>';
+  }
+  var nxtLabel=nb?nb.sector:b.sector;
+  $('mtitle').textContent='Finalizar - '+E(pr.name);
+  var b2='<div class="space-y-4"><div class="glass rounded-2xl p-3 border border-white/5"><p class="text-xs text-slate-500">Fase atual: '+b.phase+'</p><p class="text-xs text-slate-400">👤 '+b.resp+' | 🏢 '+b.sector+'</p></div>';
+  b2+='<div class="glass rounded-2xl p-3 border border-white/5"><p class="text-xs text-slate-500">Decisao:</p><p class="text-sm text-slate-300 mt-1">'+(allYes?'✅ SIM':'❌ NAO')+'</p></div>';
+  if(nxtStep===-1&&allYes){b2+='<div class="glass rounded-2xl p-3 border border-green-500/20 text-center"><p class="text-sm font-bold text-green-400">🏁 PROJETO FINALIZADO</p></div>'}
+  else if(nb){b2+='<div class="glass rounded-2xl p-3 border '+(allYes?'border-green-500/20':'border-red-500/20')+' text-center"><p class="text-sm font-bold '+(allYes?'text-green-400':'text-red-400')+'">'+(allYes?'✅ Avancar p/ '+nb.phase:'❌ Pendencia em '+b.phase)+'</p></div>'}
+  else{b2+='<div class="glass rounded-2xl p-3 border border-yellow-500/20 text-center"><p class="text-sm font-bold text-yellow-400">⚠️ Fluxo interrompido</p></div>'}
+  b2+='<div><label class="text-xs text-slate-400">Responsavel do proximo setor ('+nxtLabel+') *</label><select id="av-resp" class="w-full px-4 py-3 text-white text-sm mt-1">'+opts+'</select></div>'+delOpts+'<div><label class="text-xs text-slate-400">Observacao</label><textarea id="av-notes" rows="2" class="w-full px-4 py-3 text-white text-sm mt-1"></textarea></div></div>';
+  $('mbody').innerHTML=b2;
+  $('mfooter').innerHTML='<button onclick="showAvancar(pidAv)" class="btn-ghost px-4 py-2 text-xs rounded-xl">← Voltar</button><button onclick="doAv()" class="btn-primary px-6 py-3 text-xs rounded-xl font-medium">✅ Confirmar</button>';
 }
 
 async function doAv(){
   var pid=pidAv,pr=projects.find(function(x){return x.id===pid});if(!pr)return;
-  var curName=sn(pr.current_sector_id);
-  var nxtSector=routeTarget;
+  var curStep=getBpmStep(pr);
+  var b=getBpmByStep(curStep);if(!b)return;
+  var allYes=dec.indexOf('❌')<0;
+  var nxtStep=allYes?b.nextYes:b.nextNo;
   var resp=$('av-resp')?$('av-resp').value:'',notes=$('av-notes')?$('av-notes').value.trim():'';
-  if(!resp)return alert('Selecione um responsável do setor '+curName);
-  // Valida: responsável pertence ao setor atual (main OU user_sectors)
+  if(!resp)return alert('Selecione um responsavel');
   var uResp=users.find(function(x){return x.id===resp});
-  var noSetor=uResp&&(uResp.main_sector_id===pr.current_sector_id||userSectors.some(function(us){return us.user_id===resp&&us.sector_id===pr.current_sector_id}));
-  if(!noSetor)return alert('Responsável deve pertencer ao setor '+curName);
-  var allOk=dec.indexOf('❌')<0;
-  if(allOk&&nxtSector){
-    var nsid=gS(nxtSector);
-    await s.from('projects').update({current_sector_id:nsid,current_responsible_user_id:resp}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:curName,to_stage:nxtSector,user_id:u.id,notes:notes||dec});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'flow_received',title:'Novo: '+E(pr.name),message:curName+' → '+nxtSector+'. Resp: '+E(uResp.name),status:'pendente'});
-  }else if(!nxtSector&&allOk){
+  if(!uResp)return alert('Responsavel invalido');
+  var nxtBpm=getBpmByStep(nxtStep);
+  // Verifica duplicata: se ultimo stage_log é igual, bloqueia
+  var lastLog=stagelogs.filter(function(l){return l.project_id===pid}).sort(function(a,b){return new Date(b.date)-new Date(a.date)})[0];
+  var newTo='';
+  if(allYes&&nxtStep===-2)newTo='Declinado';
+  else if(allYes&&nxtStep===-1)newTo='Finalizado';
+  else if(allYes&&nxtBpm)newTo=nxtBpm.phase;
+  else newTo=b.phase+' (pendente)';
+  if(lastLog&&lastLog.to_stage===newTo&&lastLog.from_stage===b.phase){
+    return alert('Este avanco ja foi registrado. Atualize a pagina.');
+  }
+  if(allYes&&nxtStep===-2){await s.from("projects").update({current_responsible_user_id:resp,status:"Cancelado",finalized_at:new Date().toISOString()}).eq("id",pid);await s.from("stage_logs").insert({project_id:pid,from_stage:b.phase,to_stage:"Declinado",user_id:u.id,notes:"Pedido declinado"});await s.from("notifications").insert({project_id:pid,user_id:resp,type:"declined",title:"❌ Declinado: "+E(pr.name),message:"Projeto "+E(pr.name)+" declinado",status:"pendente"});}
+  if(allYes&&nxtStep===-1){
     await s.from('projects').update({current_responsible_user_id:resp,status:'Finalizado',finalized_at:new Date().toISOString()}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:curName,to_stage:'Finalizado',user_id:u.id,notes:notes||dec});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'finalized',title:'Finalizado: '+E(pr.name),message:'Projeto '+E(pr.name)+' finalizado em '+curName,status:'pendente'});
+    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:'Finalizado',user_id:u.id,notes:'Projeto finalizado'});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'finalized',title:'🏁 Finalizado: '+E(pr.name),message:'Projeto '+E(pr.name)+' finalizado',status:'pendente'});
+  }else if(allYes&&nxtBpm){
+    await s.from('projects').update({current_sector_id:nxtBpm.uuid,current_responsible_user_id:resp}).eq('id',pid);
+    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:nxtBpm.phase,user_id:u.id,notes:notes||dec});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'flow_received',title:'✅ '+b.phase+'→'+nxtBpm.phase,message:'Projeto '+E(pr.name)+' avancou. Resp: '+E(uResp.name),status:'pendente'});
   }else{
     await s.from('projects').update({current_responsible_user_id:resp}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:curName,to_stage:curName+' (pendente)',user_id:u.id,notes:notes||dec});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'stalled',title:'Pendência: '+E(pr.name),message:'Projeto '+E(pr.name)+' com pendência em '+curName,status:'pendente'});
+    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:b.phase+' (pendente)',user_id:u.id,notes:notes||dec});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'stalled',title:'❌ Pendencia: '+E(pr.name),message:'Projeto '+E(pr.name)+' com pendencia em '+b.phase,status:'pendente'});
+  }
+  var gestor=getBpmNotifyUser(curStep);
+  if(gestor&&gestor.id!==resp){
+    await s.from('notifications').insert({project_id:pid,user_id:gestor.id,type:'flow_received',title:'📢 '+b.phase,message:(allYes?'✅ Avancou':'❌ Pendencia')+' | '+E(pr.name)+' | '+E(uResp.name),status:'pendente'});
   }
   hideModal();await loadData();renderPage();
 }
@@ -416,16 +687,25 @@ function rGargalos(){var list=[];projects.forEach(function(pr){if(pr.status==='F
 // ==================== DETALHE DO PROJETO ====================
 function verProjeto(pid){
   var pr=projects.find(function(x){return x.id===pid});if(!pr)return;
+  viewingDetail=true; // evita que o auto-refresh de 30s tire o usuário da tela de detalhe
   var logs=stagelogs.filter(function(x){return x.project_id===pid}).sort(function(a,b){return new Date(b.date)-new Date(a.date)});
   var diasNoSetor=getTimeInSector(pid);
   var td=diasNoSetor>3?'text-red-400':diasNoSetor>1?'text-yellow-400':'text-green-400';
-  var h='<div class="mb-4"><button onclick="nav(\'projetos\')" class="text-slate-400 hover:text-white text-sm">&larr; Voltar</button><div class="flex justify-between mt-2"><div><h3 class="text-lg font-semibold text-white">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'')+'</p></div><div class="flex gap-2"><button onclick="showEditarProjeto(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-input text-slate-300 rounded-xl">✏️</button><button onclick="showAvancar(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-xl">▶ Avançar</button>'+(p&&p.is_ceo?'<button onclick="excluirProjeto(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-red-600 text-white rounded-xl">🗑</button>':'')+'</div></div></div>';
-  h+='<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">'+dc2('Setor',sn(pr.current_sector_id),sc(pr.current_sector_id))+dc2('Status',pr.status,'')+dc2('Responsável',un(pr.current_responsible_user_id),'')+dc2('Criado',fd(pr.created_at),'')+dc2('⏱ No setor',diasNoSetor+'d',td.replace('text-',''))+'</div>';
-  h+='<h4 class="text-sm font-semibold text-white mb-2">🕐 Histórico de Transições</h4><div class="space-y-1">';
-  logs.forEach(function(l,i){var dt=ago(l.date);var nextLog=i>0?logs[i-1]:null;var dur='';if(nextLog){var m=Math.floor((new Date(nextLog.date)-new Date(l.date))/60000);if(m<60)dur=m+'min';else if(m<1440)dur=Math.floor(m/60)+'h';else dur=Math.floor(m/1440)+'d'}else{dur='atual'}var udur=dur==='atual'?'text-green-400':parseInt(dur)>1440?'text-red-400':'text-slate-500';h+='<div class="bg-card2 rounded-xl p-3 border border-slate-800 text-sm flex gap-3"><span class="text-xs text-slate-600 w-16">'+dt+'</span><span class="text-slate-300 flex-1">'+E(l.from_stage||'Início')+' → '+E(l.to_stage)+'</span><span class="text-xs '+udur+' w-16 text-right">'+dur+'</span><span class="text-xs text-slate-600 w-24 text-right">👤 '+un(l.user_id)+'</span></div>'});
+  var btnEdit=canEdit()?'<button onclick="showEditarProjeto(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-input text-slate-300 rounded-xl">✏️</button>':'';
+  var btnDel=canDelete()?'<button onclick="excluirProjeto(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-red-600 text-white rounded-xl">🗑</button>':'';
+  var h='<div class="mb-4"><button onclick="nav(\'projetos\')" class="text-slate-400 hover:text-white text-sm">&larr; Voltar</button><div class="flex justify-between mt-2"><div><h3 class="text-lg font-semibold text-white">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'')+'</p></div><div class="flex gap-2">'+btnEdit+'<button onclick="showAvancar(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-xl">▶ Avançar</button>'+btnDel+'</div></div></div>';
+  h+='<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">'+dc2('Setor',sn(pr.current_sector_id),sc(pr.current_sector_id))+dc2('Status',pr.status,'')+dc2('Responsavel',un(pr.current_responsible_user_id),'')+dc2('Criado',fd(pr.created_at),'')+dc2('⏱ No setor',diasNoSetor+'d',(diasNoSetor>3?'#f87171':diasNoSetor>1?'#fbbf24':'#4ade80'))+'</div>';
+  h+='<h4 class="text-sm font-semibold text-white mb-2">📊 Auditoria</h4>';
+  var tempoTotal=0;logs.forEach(function(l,i){if(i<logs.length-1){tempoTotal+=Math.floor((new Date(logs[i].date)-new Date(logs[i+1].date))/86400000)}});
+  var media=logs.length>1?Math.round(tempoTotal/(logs.length-1)):0;
+  h+='<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">';
+  h+=dc2('Transicoes',logs.length,'#6366f1')+dc2('Dias no Setor',diasNoSetor,diasNoSetor>3?'#f87171':diasNoSetor>1?'#fbbf24':'#4ade80')+dc2('Tempo Total',tempoTotal+'d','#a78bfa')+dc2('Media/Transicao',media+'d',media>7?'#f87171':'#4ade80');
+  h+='</div>';
+  h+='<h4 class="text-sm font-semibold text-white mb-2">🕐 Historico</h4><div class="space-y-1">';
+  logs.forEach(function(l,i){var dt=ago(l.date);var nextLog=i>0?logs[i-1]:null;var dur='';if(nextLog){var m=Math.floor((new Date(nextLog.date)-new Date(l.date))/60000);if(m<60)dur=m+'min';else if(m<1440)dur=Math.floor(m/60)+'h';else dur=Math.floor(m/1440)+'d'}else{dur='atual'}var udur=dur==='atual'?'text-green-400':parseInt(dur)>1440?'text-red-400':'text-slate-500';h+='<div class="bg-card2 rounded-xl p-3 border border-slate-800 text-sm flex gap-3"><span class="text-xs text-slate-600 w-16">'+dt+'</span><span class="text-slate-300 flex-1">'+E(l.from_stage||'Inicio')+' → '+E(l.to_stage)+'</span><span class="text-xs '+udur+' w-16 text-right">'+dur+'</span><span class="text-xs text-slate-600 w-24 text-right">👤 '+un(l.user_id)+'</span></div>'});
   h+='</div>';$('content').innerHTML=h;
 }
-function dc2(l,v,c){var cl=c||'white';return'<div class="bg-card2 rounded-2xl p-4 border border-slate-800"><p class="text-xs text-slate-500">'+l+'</p><p style="color:'+cl+'" class="font-medium">'+E(v)+'</p></div>'}
+function dc2(l,v,c){var cl=(c==='white'||!c)?'#e2e8f0':c;return'<div class="stat-card"><p class="text-xs text-slate-500 uppercase tracking-wide">'+l+'</p><p style="color:'+cl+'" class="font-semibold mt-1 text-lg">'+E(v)+'</p></div>'}
 async function excluirProjeto(pid){if(confirm('Excluir?')){await s.from('projects').delete().eq('id',pid);await loadData();nav('projetos')}}
 
 // ==================== EQUIPE ====================
@@ -440,6 +720,7 @@ function rHistorico(){var h='<div class="space-y-1">';stagelogs.sort(function(a,
 // ==================== LOGIN / LOGOUT ====================
 $('login-form').addEventListener('submit',async function(e){e.preventDefault();var r=await s.auth.signInWithPassword({email:$('lemail').value,password:$('lsenha').value});if(r.error){$('login-error').textContent=r.error.message;$('login-error').classList.remove('hidden');return}u=r.data.user;var pf=await s.from('users_profile').select('*').eq('id',u.id).single();if(!pf.data){await s.from('users_profile').insert({id:u.id,auth_user_id:u.id,name:u.email,email:u.email,role:'colaborador',is_ceo:false,active:true});p={id:u.id,role:'colaborador',is_ceo:false,name:u.email,email:u.email}}else p=pf.data;$('login-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');nav('dashboard')});
 async function logout(){await s.auth.signOut();$('app-screen').classList.add('hidden');$('login-screen').classList.remove('hidden')}
+document.addEventListener('click',function(e){var pnl=$('notif-panel');if(pnl&&!pnl.classList.contains('hidden')&&!e.target.closest('#notif-panel')&&!(e.target.closest('button')&&/toggleNotifs/.test(e.target.closest('button').getAttribute('onclick')||''))){pnl.classList.add('hidden')}});
 window.addEventListener('DOMContentLoaded',async function(){var r=await s.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){u=r.data.session.user;var pf=await s.from('users_profile').select('*').eq('id',u.id).single();p=pf.data;$('login-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');nav('dashboard')}});
 </script>
 </body>

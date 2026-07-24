@@ -1,0 +1,19 @@
+# PUBLICAR SOMENTE index.html + vercel.json. Tudo abaixo NUNCA vai para o Vercel.
+node_modules
+.mimocode
+.vercel
+.git
+.env
+.env.*
+*.js
+*.sql
+*.txt
+*.bat
+*.ps1
+*.md
+*.tsx
+dashboard
+index.backup*.html
+*.backup-*.html
+Não foi utilizado
+Nao foi utilizado
