@@ -432,13 +432,13 @@ function rDashboard(){
   var nome=p&&p.name?p.name.split(' ')[0]:'';
   var h='<div class="mb-6"><h2 class="text-xl font-bold text-white">Olá, '+E(nome)+' 👋</h2><p class="text-sm text-slate-400 mt-0.5">'+(isCeo?'Visão executiva de toda a operação — dados em tempo real':'Resumo dos seus projetos e do seu setor')+'</p></div>';
   h+='<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">';
-  h+=kpi('📁','Total de Projetos',total,'#818cf8','Todos os projetos cadastrados no seu escopo de acesso');
-  h+=kpi('🔄','Em Andamento',ativos.length,'#60a5fa','Projetos ativos, que ainda não foram finalizados nem cancelados');
-  h+=kpi('✅','Finalizados',finalizados,'#4ade80','Projetos já concluídos com sucesso');
-  h+=kpi('⏰','Parados +3 dias',parados.length,parados.length?'#f87171':'#4ade80','Projetos sem movimento há mais de 3 dias no setor atual — merecem atenção');
-  h+=kpi('📊','Taxa de Conclusão',taxa+'%',taxa>=50?'#4ade80':'#facc15','Percentual de projetos finalizados em relação ao total');
-  h+=kpi('⏱️','Tempo Médio no Setor',tempoMedio+'d',tempoMedio>3?'#f87171':'#4ade80','Média de dias que os projetos ativos estão parados no setor atual');
-  h+=kpi('🚩','Prazo Estourado',atrasados.length,atrasados.length?'#f87171':'#4ade80','Projetos ativos cuja data de entrega prevista já passou');
+  h+=kpi('📁','Total de Projetos',total,'#818cf8','Todos os projetos do seu escopo — clique para ver a lista',"abrirKpi('total')");
+  h+=kpi('🔄','Em Andamento',ativos.length,'#60a5fa','Projetos ativos, ainda não finalizados nem cancelados — clique para ver',"abrirKpi('ativos')");
+  h+=kpi('✅','Finalizados',finalizados,'#4ade80','Projetos já concluídos com sucesso — clique para ver',"abrirKpi('finalizados')");
+  h+=kpi('⏰','Parados +3 dias',parados.length,parados.length?'#f87171':'#4ade80','Projetos sem movimento há mais de 3 dias — clique para ver',"abrirKpi('parados')");
+  h+=kpi('📊','Taxa de Conclusão',taxa+'%',taxa>=50?'#4ade80':'#facc15','Percentual de finalizados sobre o total — clique para ver os concluídos',"abrirKpi('finalizados')");
+  h+=kpi('⏱️','Tempo Médio no Setor',tempoMedio+'d',tempoMedio>3?'#f87171':'#4ade80','Média de dias parados no setor atual — clique para ver os mais lentos',"abrirKpi('tempo')");
+  h+=kpi('🚩','Prazo Estourado',atrasados.length,atrasados.length?'#f87171':'#4ade80','Projetos ativos com entrega vencida — clique para ver',"abrirKpi('atrasados')");
   h+='</div>';
   h+='<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">';
   h+=chartCard('Projetos por Status','Como estão distribuídos os projetos hoje','ch-status');
@@ -458,7 +458,21 @@ function rDashboard(){
   $('content').innerHTML=h;
   buildDashCharts(pjs,ativos);
 }
-function kpi(icon,label,val,color,tip){return'<div class="stat-card card-hover" style="border-top:2px solid '+color+'40" data-tooltip="'+tip+'"><div class="flex items-center justify-between"><span class="text-lg">'+icon+'</span><span class="w-1.5 h-1.5 rounded-full" style="background:'+color+'"></span></div><p class="text-xs text-slate-500 uppercase tracking-wide font-medium mt-2">'+label+'</p><p class="text-2xl font-bold mt-1" style="color:'+color+'">'+val+'</p></div>'}
+function kpi(icon,label,val,color,tip,action){return'<div class="stat-card card-hover cursor-pointer" style="border-top:2px solid '+color+'40" data-tooltip="'+tip+'" onclick="'+(action||'')+'"><div class="flex items-center justify-between"><span class="text-lg">'+icon+'</span><span class="text-slate-600 text-xs">›</span></div><p class="text-xs text-slate-500 uppercase tracking-wide font-medium mt-2">'+label+'</p><p class="text-2xl font-bold mt-1" style="color:'+color+'">'+val+'</p></div>'}
+function abrirKpi(tipo){
+  var mySectors=p?[p.main_sector_id].concat(userSectors.filter(function(us){return us.user_id===p.id}).map(function(us){return us.sector_id})):[];
+  var base=(p&&p.is_ceo)?projects:projects.filter(function(pr){return pr.current_responsible_user_id===u.id||mySectors.indexOf(pr.current_sector_id)>=0});
+  var list=base,ttl='Projetos';
+  if(tipo==='total'){ttl='Todos os projetos';}
+  else if(tipo==='ativos'){list=base.filter(isActive);ttl='Em andamento';}
+  else if(tipo==='finalizados'){list=base.filter(isFinal);ttl='Finalizados';}
+  else if(tipo==='parados'){list=base.filter(function(pr){return isActive(pr)&&getTimeInSector(pr.id)>3});ttl='Parados +3 dias';}
+  else if(tipo==='atrasados'){list=base.filter(function(pr){return isActive(pr)&&pr.deadline_at&&new Date(pr.deadline_at)<new Date()});ttl='Prazo estourado';}
+  else if(tipo==='tempo'){list=base.filter(isActive).slice().sort(function(a,b){return getTimeInSector(b.id)-getTimeInSector(a.id)});ttl='Ativos (mais tempo parado primeiro)';}
+  pg='projetos';renderSidebar();
+  if(!list.length){$('content').innerHTML='<div class="text-center py-16 glass rounded-2xl"><div class="text-5xl mb-3">📭</div><p class="text-slate-400">Nenhum projeto em "'+ttl+'"</p><button onclick="nav(\'dashboard\')" class="mt-4 btn-ghost px-4 py-2 text-xs rounded-xl">← Voltar ao Dashboard</button></div>';return}
+  renderList(list,ttl);
+}
 function chartCard(title,sub,id){return'<div class="glass rounded-2xl p-5 border border-white/5"><h3 class="text-sm font-semibold text-white">'+title+'</h3><p class="text-xs text-slate-500 mb-3">'+sub+'</p><div style="position:relative;height:240px"><canvas id="'+id+'"></canvas></div></div>'}
 function crd(l,v,c){var col=(c==='white'||!c)?'#e2e8f0':c;return'<div class="stat-card card-hover" style="border-top:2px solid '+col+'40"><div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full" style="background:'+col+'"></span><p class="text-xs text-slate-500 uppercase tracking-wide font-medium">'+l+'</p></div><p class="text-3xl font-bold mt-2" style="color:'+col+'">'+v+'</p></div>'}
 function buildDashCharts(pjs,ativos){
@@ -568,7 +582,8 @@ function rBpmFinal(){
   // Colaboradores do PRÓXIMO setor
   var nxtUsers=nb?gU(nb.uuid):getBpmSectorUsers(curStep);
   if(!nxtUsers||nxtUsers.length===0)nxtUsers=gU(b.uuid);
-  if(nxtUsers.length===0)return alert('Sem colaboradores');
+  if(!nxtUsers||nxtUsers.length===0)nxtUsers=users.filter(function(x){return x.active!==false});
+  if(!nxtUsers||nxtUsers.length===0)nxtUsers=users.slice();
   var opts=nxtUsers.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('');
   // Delegação
   var delOpts='';
