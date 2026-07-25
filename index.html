@@ -572,20 +572,28 @@ function rDec(){
 }
 function rDecResult(isYes){dec+=(dec?' | ':'')+(isYes?'✅':'❌');curDec++;rDec()}
 
+// Roteador único do fluxo: respeita nextYes E nextNo (o NÃO agora encaminha de verdade)
+function bpmRoute(b,allYes){
+  var nxtStep=allYes?b.nextYes:b.nextNo;
+  var nxtBpm=getBpmByStep(nxtStep);
+  var kind,newTo;
+  if(nxtStep===-1){kind='final';newTo='Finalizado';}
+  else if(nxtStep===-2){kind='cancel';newTo='Declinado';}
+  else if(!nxtBpm||nxtStep===b.step){kind='pend';newTo=b.phase+' (pendente)';}
+  else{kind='move';newTo=nxtBpm.phase;}
+  return{nxtStep:nxtStep,nxtBpm:nxtBpm,kind:kind,newTo:newTo};
+}
 function rBpmFinal(){
   var pr=projects.find(function(x){return x.id===pidAv});if(!pr)return;
   var curStep=getBpmStep(pr);
   var b=getBpmByStep(curStep);if(!b)return;
   var allYes=dec.indexOf('❌')<0;
-  var nxtStep=allYes?b.nextYes:b.nextNo;
-  var nb=getBpmByStep(nxtStep);
-  // Colaboradores do PRÓXIMO setor
-  var nxtUsers=nb?gU(nb.uuid):getBpmSectorUsers(curStep);
-  if(!nxtUsers||nxtUsers.length===0)nxtUsers=gU(b.uuid);
+  var r=bpmRoute(b,allYes);
+  var targetSector=(r.kind==='move'&&r.nxtBpm)?r.nxtBpm.uuid:b.uuid;
+  var nxtUsers=gU(targetSector);
   if(!nxtUsers||nxtUsers.length===0)nxtUsers=users.filter(function(x){return x.active!==false});
   if(!nxtUsers||nxtUsers.length===0)nxtUsers=users.slice();
   var opts=nxtUsers.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('');
-  // Delegação
   var delOpts='';
   if(b.delegar&&p&&p.name==='André'){
     var dels=users.filter(function(x){return b.delegar.indexOf(x.name.split(' ')[0])>=0});
@@ -593,14 +601,15 @@ function rBpmFinal(){
       dels.map(function(x){return'<label class="flex items-center gap-1 text-xs text-slate-300 cursor-pointer"><input type="radio" name="av-delegar" value="'+x.name+'" class="accent-amber-500"> '+x.name+'</label>'}).join('')+
     '</div></div>';
   }
-  var nxtLabel=nb?nb.sector:b.sector;
-  $('mtitle').textContent='Finalizar - '+E(pr.name);
+  var nxtLabel=(r.kind==='move'&&r.nxtBpm)?r.nxtBpm.sector:b.sector;
+  $('mtitle').textContent='Confirmar - '+E(pr.name);
   var b2='<div class="space-y-4"><div class="glass rounded-2xl p-3 border border-white/5"><p class="text-xs text-slate-500">Fase atual: '+b.phase+'</p><p class="text-xs text-slate-400">👤 '+b.resp+' | 🏢 '+b.sector+'</p></div>';
-  b2+='<div class="glass rounded-2xl p-3 border border-white/5"><p class="text-xs text-slate-500">Decisao:</p><p class="text-sm text-slate-300 mt-1">'+(allYes?'✅ SIM':'❌ NAO')+'</p></div>';
-  if(nxtStep===-1&&allYes){b2+='<div class="glass rounded-2xl p-3 border border-green-500/20 text-center"><p class="text-sm font-bold text-green-400">🏁 PROJETO FINALIZADO</p></div>'}
-  else if(nb){b2+='<div class="glass rounded-2xl p-3 border '+(allYes?'border-green-500/20':'border-red-500/20')+' text-center"><p class="text-sm font-bold '+(allYes?'text-green-400':'text-red-400')+'">'+(allYes?'✅ Avancar p/ '+nb.phase:'❌ Pendencia em '+b.phase)+'</p></div>'}
-  else{b2+='<div class="glass rounded-2xl p-3 border border-yellow-500/20 text-center"><p class="text-sm font-bold text-yellow-400">⚠️ Fluxo interrompido</p></div>'}
-  b2+='<div><label class="text-xs text-slate-400">Responsavel do proximo setor ('+nxtLabel+') *</label><select id="av-resp" class="w-full px-4 py-3 text-white text-sm mt-1">'+opts+'</select></div>'+delOpts+'<div><label class="text-xs text-slate-400">Observacao</label><textarea id="av-notes" rows="2" class="w-full px-4 py-3 text-white text-sm mt-1"></textarea></div></div>';
+  b2+='<div class="glass rounded-2xl p-3 border border-white/5"><p class="text-xs text-slate-500">Sua decisão:</p><p class="text-sm text-slate-300 mt-1">'+(allYes?'✅ SIM':'❌ NÃO')+'</p></div>';
+  if(r.kind==='final')b2+='<div class="glass rounded-2xl p-3 border border-green-500/20 text-center"><p class="text-sm font-bold text-green-400">🏁 PROJETO FINALIZADO</p></div>';
+  else if(r.kind==='cancel')b2+='<div class="glass rounded-2xl p-3 border border-red-500/20 text-center"><p class="text-sm font-bold text-red-400">⛔ DECLINAR / CANCELAR</p></div>';
+  else if(r.kind==='move')b2+='<div class="glass rounded-2xl p-3 border border-green-500/20 text-center"><p class="text-sm font-bold text-green-400">➡️ Avançar para:</p><p class="text-sm font-bold text-green-300">'+r.nxtBpm.phase+'</p></div>';
+  else b2+='<div class="glass rounded-2xl p-3 border border-yellow-500/20 text-center"><p class="text-sm font-bold text-yellow-400">⏳ Fica pendente em '+b.phase+'</p><p class="text-xs text-slate-500 mt-1">(aguardar / refazer esta etapa)</p></div>';
+  b2+='<div><label class="text-xs text-slate-400">Responsável ('+nxtLabel+') *</label><select id="av-resp" class="w-full px-4 py-3 text-white text-sm mt-1">'+opts+'</select></div>'+delOpts+'<div><label class="text-xs text-slate-400">Observação</label><textarea id="av-notes" rows="2" class="w-full px-4 py-3 text-white text-sm mt-1"></textarea></div></div>';
   $('mbody').innerHTML=b2;
   $('mfooter').innerHTML='<button onclick="showAvancar(pidAv)" class="btn-ghost px-4 py-2 text-xs rounded-xl">← Voltar</button><button onclick="doAv()" class="btn-primary px-6 py-3 text-xs rounded-xl font-medium">✅ Confirmar</button>';
 }
@@ -610,39 +619,35 @@ async function doAv(){
   var curStep=getBpmStep(pr);
   var b=getBpmByStep(curStep);if(!b)return;
   var allYes=dec.indexOf('❌')<0;
-  var nxtStep=allYes?b.nextYes:b.nextNo;
+  var r=bpmRoute(b,allYes);
   var resp=$('av-resp')?$('av-resp').value:'',notes=$('av-notes')?$('av-notes').value.trim():'';
   if(!resp)return alert('Selecione um responsavel');
   var uResp=users.find(function(x){return x.id===resp});
   if(!uResp)return alert('Responsavel invalido');
-  var nxtBpm=getBpmByStep(nxtStep);
-  // Verifica duplicata: se ultimo stage_log é igual, bloqueia
   var lastLog=stagelogs.filter(function(l){return l.project_id===pid}).sort(function(a,b){return new Date(b.date)-new Date(a.date)})[0];
-  var newTo='';
-  if(allYes&&nxtStep===-2)newTo='Declinado';
-  else if(allYes&&nxtStep===-1)newTo='Finalizado';
-  else if(allYes&&nxtBpm)newTo=nxtBpm.phase;
-  else newTo=b.phase+' (pendente)';
-  if(lastLog&&lastLog.to_stage===newTo&&lastLog.from_stage===b.phase){
-    return alert('Este avanco ja foi registrado. Atualize a pagina.');
+  if(lastLog&&lastLog.to_stage===r.newTo&&lastLog.from_stage===b.phase){
+    return alert('Este avanço já foi registrado. Atualize a página.');
   }
-  if(allYes&&nxtStep===-2){await s.from("projects").update({current_responsible_user_id:resp,status:"Cancelado",finalized_at:new Date().toISOString()}).eq("id",pid);await s.from("stage_logs").insert({project_id:pid,from_stage:b.phase,to_stage:"Declinado",user_id:u.id,notes:"Pedido declinado"});await s.from("notifications").insert({project_id:pid,user_id:resp,type:"declined",title:"❌ Declinado: "+E(pr.name),message:"Projeto "+E(pr.name)+" declinado",status:"pendente"});}
-  if(allYes&&nxtStep===-1){
+  if(r.kind==='cancel'){
+    await s.from('projects').update({current_responsible_user_id:resp,status:'Cancelado',finalized_at:new Date().toISOString()}).eq('id',pid);
+    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:'Declinado',user_id:u.id,notes:notes||'Pedido declinado'});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'declined',title:'⛔ Declinado: '+E(pr.name),message:'Projeto '+E(pr.name)+' declinado',status:'pendente'});
+  }else if(r.kind==='final'){
     await s.from('projects').update({current_responsible_user_id:resp,status:'Finalizado',finalized_at:new Date().toISOString()}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:'Finalizado',user_id:u.id,notes:'Projeto finalizado'});
+    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:'Finalizado',user_id:u.id,notes:notes||'Projeto finalizado'});
     await s.from('notifications').insert({project_id:pid,user_id:resp,type:'finalized',title:'🏁 Finalizado: '+E(pr.name),message:'Projeto '+E(pr.name)+' finalizado',status:'pendente'});
-  }else if(allYes&&nxtBpm){
-    await s.from('projects').update({current_sector_id:nxtBpm.uuid,current_responsible_user_id:resp}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:nxtBpm.phase,user_id:u.id,notes:notes||dec});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'flow_received',title:'✅ '+b.phase+'→'+nxtBpm.phase,message:'Projeto '+E(pr.name)+' avancou. Resp: '+E(uResp.name),status:'pendente'});
+  }else if(r.kind==='move'){
+    await s.from('projects').update({current_sector_id:r.nxtBpm.uuid,current_responsible_user_id:resp,status:'Em andamento'}).eq('id',pid);
+    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:r.nxtBpm.phase,user_id:u.id,notes:notes||dec});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'flow_received',title:'✅ '+r.nxtBpm.phase,message:'Projeto '+E(pr.name)+' avançou. Resp: '+E(uResp.name),status:'pendente'});
   }else{
     await s.from('projects').update({current_responsible_user_id:resp}).eq('id',pid);
     await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:b.phase+' (pendente)',user_id:u.id,notes:notes||dec});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'stalled',title:'❌ Pendencia: '+E(pr.name),message:'Projeto '+E(pr.name)+' com pendencia em '+b.phase,status:'pendente'});
+    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'stalled',title:'⏳ Pendência: '+E(pr.name),message:'Projeto '+E(pr.name)+' pendente em '+b.phase,status:'pendente'});
   }
   var gestor=getBpmNotifyUser(curStep);
   if(gestor&&gestor.id!==resp){
-    await s.from('notifications').insert({project_id:pid,user_id:gestor.id,type:'flow_received',title:'📢 '+b.phase,message:(allYes?'✅ Avancou':'❌ Pendencia')+' | '+E(pr.name)+' | '+E(uResp.name),status:'pendente'});
+    await s.from('notifications').insert({project_id:pid,user_id:gestor.id,type:'flow_received',title:'📢 '+b.phase,message:((r.kind==='move'||r.kind==='final')?'✅ Avançou':'⏳ Pendência')+' | '+E(pr.name)+' | '+E(uResp.name),status:'pendente'});
   }
   hideModal();await loadData();renderPage();
 }
