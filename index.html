@@ -106,6 +106,12 @@ var getTimeInSector=function(pid){
   return Math.floor((Date.now()-new Date(lg.date).getTime())/86400000);
 };
 var canCreate=function(){if(!p)return false;if(p.is_ceo)return true;var ok=['Comercial','Diretoria Financeira'];return ok.indexOf(sn(p.main_sector_id))>=0};var isDiretoria=function(){return p&&(p.is_ceo||sn(p.main_sector_id)==='Diretoria / CEO')};var isNathalia=function(){return p&&p.name==='Nathalia'};var canDelete=function(){return isDiretoria()||isNathalia()};var canEdit=function(){return isDiretoria()||isNathalia()};
+// Acesso total (dashboards+KPIs+tudo): Comercial, Engenharia, Diretoria/CEO, Diretoria Financeira. Os demais só veem "Meus Fluxos".
+var FULL_ACCESS_SECTORS=['11111111-1111-1111-1111-111111111111','99999999-9999-9999-9999-999999999999','66666666-6666-6666-6666-666666666666','77777777-7777-7777-7777-777777777777'];
+function mySectorIds(){if(!p)return[];return [p.main_sector_id].concat(userSectors.filter(function(us){return us.user_id===p.id}).map(function(us){return us.sector_id}));}
+function hasFullAccess(){if(!p)return false;if(p.is_ceo)return true;return mySectorIds().some(function(sid){return FULL_ACCESS_SECTORS.indexOf(sid)>=0});}
+// Cada pessoa só avança o SEU passo: apenas o responsável atual (ou o CEO).
+function canAvancar(pr){if(!p||!pr||!u)return false;if(p.is_ceo)return true;return pr.current_responsible_user_id===u.id;}
 
 // ==================== BPM 23 ETAPAS - FLUXO COMPLETO ====================
 // nextYes/nextNo: step number, -1=FIM, -2=DECLINAR, -3=VOLTA ao início
@@ -347,14 +353,22 @@ function getVisited(pid){
 // ==================== UI ====================
 function showModal(t,b,f){$('mtitle').textContent=t;$('mbody').innerHTML=b;$('mfooter').innerHTML=f||'';$('modal').classList.remove('hidden')}
 function hideModal(){$('modal').classList.add('hidden')}
-async function nav(n){pg=n;renderSidebar();await loadData();renderPage()}
+async function nav(n){pg=n;await loadData();renderSidebar();renderPage()}
 function renderSidebar(){
-  var m=[{p:'dashboard',i:'📊',l:'Dashboard'}];
-  if(canCreate())m.push({p:'empresas',i:'🏢',l:'Empresas'});
-  m.push({p:'fluxos',i:'📥',l:'Meus Fluxos'},{p:'projetos',i:'📋',l:'Projetos'});
-  m.push({p:'visao',i:'🏭',l:'Visão Geral'},{p:'gargalos',i:'⚠️',l:'Gargalos'});if(p&&p.is_ceo){m.push({p:'equipe',i:'👥',l:'Equipe'},{p:'setores',i:'⚙️',l:'Setores'});}m.push({p:'historico',i:'🕐',l:'Histórico'});
+  var full=hasFullAccess();
+  var m;
+  if(full){
+    m=[{p:'dashboard',i:'📊',l:'Dashboard'}];
+    if(canCreate())m.push({p:'empresas',i:'🏢',l:'Empresas'});
+    m.push({p:'fluxos',i:'📥',l:'Meus Fluxos'},{p:'projetos',i:'📋',l:'Projetos'});
+    m.push({p:'visao',i:'🏭',l:'Visão Geral'},{p:'gargalos',i:'⚠️',l:'Gargalos'});
+    if(p&&p.is_ceo){m.push({p:'equipe',i:'👥',l:'Equipe'},{p:'setores',i:'⚙️',l:'Setores'});}
+    m.push({p:'historico',i:'🕐',l:'Histórico'});
+  }else{
+    m=[{p:'fluxos',i:'📥',l:'Meus Fluxos'}];
+  }
   $('sidebar-nav').innerHTML=m.map(function(x){return'<a href="#" onclick="event.preventDefault();nav(\''+x.p+'\')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200'+(pg===x.p?' bg-brand-500/15 text-brand-300 font-semibold shadow-sm shadow-brand-500/5':' text-slate-400 hover:text-white hover:bg-white/[0.04]')+'">'+x.i+' '+x.l+'</a>'}).join('')
-    +'<div class="mt-3 pt-3 border-t border-white/5"><button onclick="verFluxoBPM()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200">📋 Fluxo BPM</button></div>';
+    +(full?'<div class="mt-3 pt-3 border-t border-white/5"><button onclick="verFluxoBPM()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200">📋 Fluxo BPM</button></div>':'');
   $('sidebar-user').innerHTML='<div class="flex items-center gap-3 px-2"><div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-brand-500/20">'+(p&&p.name?p.name[0]:'?')+'</div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">'+E(p?p.name:'')+'</p><p class="text-xs text-slate-500 truncate">'+E(p?p.email:'')+'</p></div><button onclick="logout()" class="text-slate-500 hover:text-red-400 text-lg transition-colors">⏻</button></div>';
   $('page-title').textContent={dashboard:'Dashboard',empresas:'Empresas',fluxos:'Meus Fluxos',projetos:'Projetos',visao:'Visão Geral',gargalos:'Gargalos',equipe:'Equipe',setores:'Setores',historico:'Histórico'}[pg]||'ERP';
   if($('page-subtitle'))$('page-subtitle').textContent={dashboard:'Indicadores e desempenho em tempo real',empresas:'Clientes e empresas atendidas',fluxos:'Projetos aguardando a sua ação',projetos:'Todos os projetos e seus status',visao:'Mapa de projetos por empresa e setor',gargalos:'Projetos parados que precisam de atenção',equipe:'Colaboradores e suas funções',setores:'Setores e responsáveis',historico:'Linha do tempo das movimentações'}[pg]||'';
@@ -399,7 +413,7 @@ var realtimeInterval=setInterval(async function(){
   if(modalOpen||viewingDetail){await loadData();return}
   await loadData();renderPage();
 },30000);
-function renderPage(){viewingDetail=false;switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'historico':rHistorico();break}}
+function renderPage(){viewingDetail=false;if(!hasFullAccess()&&pg!=='fluxos'){pg='fluxos';renderSidebar();}switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'historico':rHistorico();break}}
 
 // ==================== DASHBOARD EXECUTIVO ====================
 var dashCharts=[];
@@ -516,7 +530,7 @@ function rProjetosEmpresa(eid){renderList(projects.filter(function(pr){return pr
 function renderList(pjs,ttl){
   var btn=canCreate()?'<button onclick="showNovoProjeto()" class="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl">+ Novo Projeto</button>':'';
   var h='<div class="flex justify-between mb-6"><div><button onclick="nav(\'projetos\')" class="text-xs text-brand-400">&larr; Todos</button><p class="text-sm text-slate-400 mt-1">'+pjs.length+' projetos · '+ttl+'</p></div>'+btn+'</div><div class="space-y-3">';
-  pjs.forEach(function(pr){var b=pr.current_responsible_user_id===u.id?'border-red-500':'border-slate-700';var dias=getTimeInSector(pr.id);var td=dias>3?'text-red-400':dias>1?'text-yellow-400':'text-green-400';h+='<div class="bg-card2 rounded-2xl p-5 border '+b+' hover:ring-1 hover:ring-brand-500/30 transition fade-up"><div class="flex justify-between items-start"><div class="cursor-pointer flex-1" onclick="verProjeto(\''+pr.id+'\')"><span class="text-xs text-slate-500 font-mono">#'+E(pr.code||'')+'</span><h3 class="font-semibold text-white mt-1">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'---')+'</p></div><div class="flex gap-1"><button onclick="event.stopPropagation();showEditarProjeto(\''+pr.id+'\')" class="text-xs px-3 py-1.5 rounded-xl bg-input text-slate-300">✏️</button><button onclick="event.stopPropagation();showAvancar(\''+pr.id+'\')" class="text-xs px-3 py-1.5 rounded-xl bg-brand-600 text-white">▶ Avançar</button></div></div><div class="flex gap-3 mt-3 text-xs"><span style="color:'+sc(pr.current_sector_id)+'">● '+sn(pr.current_sector_id)+'</span><span class="'+td+'">⏱ '+dias+'d</span><span class="text-slate-500">👤 '+un(pr.current_responsible_user_id)+'</span></div></div>'});h+='</div>';$('content').innerHTML=h;
+  pjs.forEach(function(pr){var b=pr.current_responsible_user_id===u.id?'border-red-500':'border-slate-700';var dias=getTimeInSector(pr.id);var td=dias>3?'text-red-400':dias>1?'text-yellow-400':'text-green-400';h+='<div class="bg-card2 rounded-2xl p-5 border '+b+' hover:ring-1 hover:ring-brand-500/30 transition fade-up"><div class="flex justify-between items-start"><div class="cursor-pointer flex-1" onclick="verProjeto(\''+pr.id+'\')"><span class="text-xs text-slate-500 font-mono">#'+E(pr.code||'')+'</span><h3 class="font-semibold text-white mt-1">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'---')+'</p></div><div class="flex gap-1"><button onclick="event.stopPropagation();showEditarProjeto(\''+pr.id+'\')" class="text-xs px-3 py-1.5 rounded-xl bg-input text-slate-300">✏️</button>'+(canAvancar(pr)?'<button onclick="event.stopPropagation();showAvancar(\''+pr.id+'\')" class="text-xs px-3 py-1.5 rounded-xl bg-brand-600 text-white">▶ Avançar</button>':'')+'</div></div><div class="flex gap-3 mt-3 text-xs"><span style="color:'+sc(pr.current_sector_id)+'">● '+sn(pr.current_sector_id)+'</span><span class="'+td+'">⏱ '+dias+'d</span><span class="text-slate-500">👤 '+un(pr.current_responsible_user_id)+'</span></div></div>'});h+='</div>';$('content').innerHTML=h;
 }
 function showNovoProjeto(){
   var comSid='11111111-1111-1111-1111-111111111111';
@@ -547,6 +561,7 @@ async function showAvancar(pid){
   pidAv=pid;curDec=0;dec='';routeTarget=null;
   var pr=projects.find(function(x){return x.id===pid});if(!pr)return;
   if(pr.status==='Finalizado'||pr.status==='Cancelado'){alert('Projeto já encerrado ('+pr.status+'). Não é possível avançar.');return;}
+  if(!canAvancar(pr)){alert('🔒 Este passo é responsabilidade de '+un(pr.current_responsible_user_id)+' ('+sn(pr.current_sector_id)+').\n\nSomente o responsável (ou o CEO) pode avançar este projeto.');return;}
   var curStep=getBpmStep(pr);
   var b=getBpmByStep(curStep);if(!b){alert('Fase nao encontrada');return}
   decs=b.decisions||[];
@@ -628,23 +643,16 @@ async function doAv(){
   if(lastLog&&lastLog.to_stage===r.newTo&&lastLog.from_stage===b.phase){
     return alert('Este avanço já foi registrado. Atualize a página.');
   }
-  if(r.kind==='cancel'){
-    await s.from('projects').update({current_responsible_user_id:resp,status:'Cancelado',finalized_at:new Date().toISOString()}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:'Declinado',user_id:u.id,notes:notes||'Pedido declinado'});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'declined',title:'⛔ Declinado: '+E(pr.name),message:'Projeto '+E(pr.name)+' declinado',status:'pendente'});
-  }else if(r.kind==='final'){
-    await s.from('projects').update({current_responsible_user_id:resp,status:'Finalizado',finalized_at:new Date().toISOString()}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:'Finalizado',user_id:u.id,notes:notes||'Projeto finalizado'});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'finalized',title:'🏁 Finalizado: '+E(pr.name),message:'Projeto '+E(pr.name)+' finalizado',status:'pendente'});
-  }else if(r.kind==='move'){
-    await s.from('projects').update({current_sector_id:r.nxtBpm.uuid,current_responsible_user_id:resp,status:'Em andamento'}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:r.nxtBpm.phase,user_id:u.id,notes:notes||dec});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'flow_received',title:'✅ '+r.nxtBpm.phase,message:'Projeto '+E(pr.name)+' avançou. Resp: '+E(uResp.name),status:'pendente'});
-  }else{
-    await s.from('projects').update({current_responsible_user_id:resp}).eq('id',pid);
-    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:b.phase+' (pendente)',user_id:u.id,notes:notes||dec});
-    await s.from('notifications').insert({project_id:pid,user_id:resp,type:'stalled',title:'⏳ Pendência: '+E(pr.name),message:'Projeto '+E(pr.name)+' pendente em '+b.phase,status:'pendente'});
-  }
+  var upd,toStage,ntype,ntitle,nmsg;
+  if(r.kind==='cancel'){upd={current_responsible_user_id:resp,status:'Cancelado',finalized_at:new Date().toISOString()};toStage='Declinado';ntype='declined';ntitle='⛔ Declinado: '+E(pr.name);nmsg='Projeto '+E(pr.name)+' declinado';}
+  else if(r.kind==='final'){upd={current_responsible_user_id:resp,status:'Finalizado',finalized_at:new Date().toISOString()};toStage='Finalizado';ntype='finalized';ntitle='🏁 Finalizado: '+E(pr.name);nmsg='Projeto '+E(pr.name)+' finalizado';}
+  else if(r.kind==='move'){upd={current_sector_id:r.nxtBpm.uuid,current_responsible_user_id:resp,status:'Em andamento'};toStage=r.nxtBpm.phase;ntype='flow_received';ntitle='✅ '+r.nxtBpm.phase;nmsg='Projeto '+E(pr.name)+' avançou. Resp: '+E(uResp.name);}
+  else{upd={current_responsible_user_id:resp};toStage=b.phase+' (pendente)';ntype='stalled';ntitle='⏳ Pendência: '+E(pr.name);nmsg='Projeto '+E(pr.name)+' pendente em '+b.phase;}
+  var upRes=await s.from('projects').update(upd).eq('id',pid);
+  if(upRes&&upRes.error){alert('❌ Não foi possível avançar.\n\nO banco recusou a alteração:\n'+upRes.error.message+'\n\n(provável regra de permissão/RLS no Supabase)');return;}
+  var slRes=await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:toStage,user_id:u.id,notes:notes||dec});
+  if(slRes&&slRes.error){alert('⚠️ O projeto avançou, mas o histórico não salvou:\n'+slRes.error.message);}
+  await s.from('notifications').insert({project_id:pid,user_id:resp,type:ntype,title:ntitle,message:nmsg,status:'pendente'});
   var gestor=getBpmNotifyUser(curStep);
   if(gestor&&gestor.id!==resp){
     await s.from('notifications').insert({project_id:pid,user_id:gestor.id,type:'flow_received',title:'📢 '+b.phase,message:((r.kind==='move'||r.kind==='final')?'✅ Avançou':'⏳ Pendência')+' | '+E(pr.name)+' | '+E(uResp.name),status:'pendente'});
@@ -713,7 +721,7 @@ function verProjeto(pid){
   var td=diasNoSetor>3?'text-red-400':diasNoSetor>1?'text-yellow-400':'text-green-400';
   var btnEdit=canEdit()?'<button onclick="showEditarProjeto(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-input text-slate-300 rounded-xl">✏️</button>':'';
   var btnDel=canDelete()?'<button onclick="excluirProjeto(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-red-600 text-white rounded-xl">🗑</button>':'';
-  var h='<div class="mb-4"><button onclick="nav(\'projetos\')" class="text-slate-400 hover:text-white text-sm">&larr; Voltar</button><div class="flex justify-between mt-2"><div><h3 class="text-lg font-semibold text-white">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'')+'</p></div><div class="flex gap-2">'+btnEdit+'<button onclick="showAvancar(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-xl">▶ Avançar</button>'+btnDel+'</div></div></div>';
+  var h='<div class="mb-4"><button onclick="nav(\'projetos\')" class="text-slate-400 hover:text-white text-sm">&larr; Voltar</button><div class="flex justify-between mt-2"><div><h3 class="text-lg font-semibold text-white">'+E(pr.name)+'</h3><p class="text-xs text-slate-400">'+E(empresas.find(function(x){return x.id===pr.empresa_id})?.nome||'')+'</p></div><div class="flex gap-2">'+btnEdit+''+(canAvancar(pr)?'<button onclick="showAvancar(\''+pid+'\')" class="px-3 py-1.5 text-xs bg-brand-600 text-white rounded-xl">▶ Avançar</button>':'')+btnDel+'</div></div></div>';
   h+='<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">'+dc2('Setor',sn(pr.current_sector_id),sc(pr.current_sector_id))+dc2('Status',pr.status,'')+dc2('Responsavel',un(pr.current_responsible_user_id),'')+dc2('Criado',fd(pr.created_at),'')+dc2('⏱ No setor',diasNoSetor+'d',(diasNoSetor>3?'#f87171':diasNoSetor>1?'#fbbf24':'#4ade80'))+'</div>';
   h+='<h4 class="text-sm font-semibold text-white mb-2">📊 Auditoria</h4>';
   var tempoTotal=0;logs.forEach(function(l,i){if(i<logs.length-1){tempoTotal+=Math.floor((new Date(logs[i].date)-new Date(logs[i+1].date))/86400000)}});
