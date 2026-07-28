@@ -620,14 +620,22 @@ function bpmRoute(b,allYes){
   else{kind='move';newTo=nxtBpm.phase;}
   return{nxtStep:nxtStep,nxtBpm:nxtBpm,kind:kind,newTo:newTo};
 }
+// Responsáveis de uma etapa: usuários do setor + os NOMEADOS no campo resp
+// (assim "Fábio / Tainá", "Islan / Robson", "Agnaldo / Tainá" aparecem os dois para escolher)
+function usuariosDaEtapa(b){
+  var lista=gU(b.uuid).slice();
+  var nomes=(b.resp||'').split('/').map(function(x){return x.trim()});
+  users.forEach(function(us){if(nomes.indexOf(us.name)>=0&&lista.indexOf(us)<0)lista.push(us)});
+  return lista;
+}
 function rBpmFinal(){
   var pr=projects.find(function(x){return x.id===pidAv});if(!pr)return;
   var curStep=getBpmStep(pr);
   var b=getBpmByStep(curStep);if(!b)return;
   var allYes=dec.indexOf('❌')<0;
   var r=bpmRoute(b,allYes);
-  var targetSector=(r.kind==='move'&&r.nxtBpm)?r.nxtBpm.uuid:b.uuid;
-  var nxtUsers=gU(targetSector);
+  var alvo=(r.kind==='move'&&r.nxtBpm)?r.nxtBpm:b;
+  var nxtUsers=usuariosDaEtapa(alvo);
   if(!nxtUsers||nxtUsers.length===0)nxtUsers=users.filter(function(x){return x.active!==false});
   if(!nxtUsers||nxtUsers.length===0)nxtUsers=users.slice();
   var opts=nxtUsers.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('');
