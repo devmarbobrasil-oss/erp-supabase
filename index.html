@@ -149,8 +149,8 @@ var BPM=[
   ], nextYes:9.1, nextNo:-2, notify:'André'},
 
   {step:9.1, phase:'9.1 Proposta Comercial', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'Emissão e envio de Proposta ao Cliente', decisions:[
-    {q:'Cliente aprovou proposta?',yes:'Receber PO/Contrato',no:'Avaliar revisão'}
-  ], nextYes:9.3, nextNo:9.5, notify:'André'},
+    {q:'Proposta enviada ao cliente?',yes:'Verificar aprovação do cliente',no:'Reenviar proposta'}
+  ], nextYes:9.2, nextNo:9.1, notify:'André'},
 
   {step:9.2, phase:'9.2 Aprovação do Cliente', sector:'Comercial', uuid:'11111111-1111-1111-1111-111111111111', resp:'Nathalia', desc:'Verificar se cliente aprovou', decisions:[
     {q:'Cliente aprovou?',yes:'Receber PO/Contrato',no:'Ir para Revisão de Proposta'}
@@ -185,8 +185,8 @@ var BPM=[
   ], nextYes:11, nextNo:10, notify:'André'},
 
   {step:11, phase:'11. Lista Materiais + Docs Técnicos', sector:'Almoxarifado', uuid:'55555555-5555-5555-5555-555555555555', resp:'André', desc:'Enviar Lista de Materiais e Documentação Técnica', decisions:[
-    {q:'Tem material em estoque?',yes:'Separar e identificar',no:'Emitir Ordem de Compra'}
-  ], nextYes:12, nextNo:13, notify:'André'},
+    {q:'Lista e documentação enviadas?',yes:'Verificar estoque',no:'Completar envio'}
+  ], nextYes:11.1, nextNo:11, notify:'André'},
 
   {step:11.1, phase:'11.1 Verificação de Estoque', sector:'Almoxarifado', uuid:'55555555-5555-5555-5555-555555555555', resp:'Adriele', desc:'Verificar se há material em estoque', decisions:[
     {q:'Material disponível?',yes:'Separar e identificar',no:'Emitir Ordem de Compra'}
@@ -313,8 +313,8 @@ var BPM=[
   ], nextYes:41, nextNo:40, notify:'André'},
 
   {step:41, phase:'41. RDOs e Documentação As Built', sector:'Engenharia', uuid:'99999999-9999-9999-9999-999999999999', resp:'Robson / Islan', desc:'Envio de todos os RDOs do contrato e documentação revisada para confecção de As Built', decisions:[
-    {q:'RDOs e As Built enviados?',yes:'Avaliação do contrato',no:'Completar documentação'}
-  ], nextYes:42, nextNo:41, notify:'André'},
+    {q:'RDOs e As Built enviados?',yes:'Emitir AS BUILT e DATABOOK',no:'Completar documentação'}
+  ], nextYes:34, nextNo:41, notify:'André'},
 
   {step:42, phase:'42. Avaliação do Contrato', sector:'Gestão de Projeto', uuid:'22222222-2222-2222-2222-222222222222', resp:'André', desc:'Enviar ao cliente avaliação do contrato', decisions:[
     {q:'Avaliação enviada?',yes:'Atestado técnico',no:'Reenviar avaliação'}
