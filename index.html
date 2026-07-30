@@ -403,7 +403,20 @@ function renderSidebar(){
   if($('page-subtitle'))$('page-subtitle').textContent={dashboard:'Indicadores e desempenho em tempo real',empresas:'Clientes e empresas atendidas',fluxos:'Projetos aguardando a sua ação',projetos:'Todos os projetos e seus status',visao:'Mapa de projetos por empresa e setor',gargalos:'Projetos parados que precisam de atenção',equipe:'Colaboradores e suas funções',setores:'Setores e responsáveis',crm:'Funil de oportunidades de vendas (Nathalia, Fábio, Tainá)',historico:'Linha do tempo das movimentações'}[pg]||'';
 }
 async function loadData(){
-  var all=await Promise.all([s.from('sectors').select('*').order('sort_order'),s.from('users_profile').select('*'),s.from('user_sectors').select('*'),s.from('projects').select('*').order('created_at',{ascending:false}),s.from('project_flow_history').select('*').order('created_at',{ascending:false}).limit(300),s.from('empresas').select('*').order('nome'),s.from('stage_logs').select('*').order('date',{ascending:false}).limit(500),s.from('notifications').select('*').eq('user_id',u.id).order('created_at',{ascending:false}).limit(50),s.from('crm_stages').select('*').order('ordem'),s.from('crm_leads').select('*')]);
+  // Cada query com timeout de 5s: se RLS travar, não bloqueia UI (retorna vazio)
+  function tq(q){return Promise.race([q,new Promise(function(res){setTimeout(function(){res({data:[],error:{message:'timeout'}})},5000)})])}
+  var all=await Promise.all([
+    tq(s.from('sectors').select('*').order('sort_order')),
+    tq(s.from('users_profile').select('*')),
+    tq(s.from('user_sectors').select('*')),
+    tq(s.from('projects').select('*').order('created_at',{ascending:false})),
+    tq(s.from('project_flow_history').select('*').order('created_at',{ascending:false}).limit(300)),
+    tq(s.from('empresas').select('*').order('nome')),
+    tq(s.from('stage_logs').select('*').order('date',{ascending:false}).limit(500)),
+    tq(s.from('notifications').select('*').eq('user_id',u.id).order('created_at',{ascending:false}).limit(50)),
+    tq(s.from('crm_stages').select('*').order('ordem')),
+    tq(s.from('crm_leads').select('*'))
+  ]);
   sectors=all[0].data||[];users=all[1].data||[];userSectors=all[2].data||[];projects=all[3].data||[];history=all[4].data||[];empresas=all[5].data||[];stagelogs=all[6].data||[];notifs=all[7].data||[];crmStages=all[8].data||[];leads_global=all[9].data||[];
   FLOW=BPM.map(function(b){return b.phase});
   updateNotifBadge();
@@ -990,10 +1003,42 @@ function rHistorico(){
 }
 
 // ==================== LOGIN / LOGOUT ====================
-$('login-form').addEventListener('submit',async function(e){e.preventDefault();var r=await s.auth.signInWithPassword({email:$('lemail').value,password:$('lsenha').value});if(r.error){$('login-error').textContent=r.error.message;$('login-error').classList.remove('hidden');return}u=r.data.user;var pf=await s.from('users_profile').select('*').eq('id',u.id).single();if(!pf.data){await s.from('users_profile').insert({id:u.id,auth_user_id:u.id,name:u.email,email:u.email,role:'colaborador',is_ceo:false,active:true});p={id:u.id,role:'colaborador',is_ceo:false,name:u.email,email:u.email}}else p=pf.data;$('login-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');nav('dashboard')});
+async function carregaPerfil(uid,email){
+  // Tenta buscar o perfil com TIMEOUT de 4s (caso RLS trave, não bloqueia login)
+  try{
+    var pf=await Promise.race([
+      s.from('users_profile').select('*').eq('id',uid).maybeSingle(),
+      new Promise(function(_,rej){setTimeout(function(){rej(new Error('rls_timeout'))},4000)})
+    ]);
+    if(pf&&pf.data)return pf.data;
+  }catch(e){console.warn('perfil timeout — usando fallback do auth',e.message)}
+  // Fallback: monta perfil mínimo pelo email para o app funcionar
+  var byEmail={'ceo@fujitecbrasil.com.br':{name:'Fábio',is_ceo:true,role:'ceo',main_sector_id:'66666666-6666-6666-6666-666666666666'},
+    'nathalia@fujitecbrasil.com.br':{name:'Nathalia',is_ceo:false,role:'gestor',main_sector_id:'11111111-1111-1111-1111-111111111111'},
+    'andre@fujitecbrasil.com.br':{name:'André',is_ceo:false,role:'gestor',main_sector_id:'22222222-2222-2222-2222-222222222222'},
+    'robson@fujitecbrasil.com.br':{name:'Robson',is_ceo:false,role:'gestor',main_sector_id:'33333333-3333-3333-3333-333333333333'},
+    'islan@fujitecbrasil.com.br':{name:'Islan',is_ceo:false,role:'colaborador',main_sector_id:'33333333-3333-3333-3333-333333333333'},
+    'rafaela@fujitecbrasil.com.br':{name:'Rafaela',is_ceo:false,role:'gestor',main_sector_id:'44444444-4444-4444-4444-444444444444'},
+    'adriele@fujitecbrasil.com.br':{name:'Adriele',is_ceo:false,role:'gestor',main_sector_id:'55555555-5555-5555-5555-555555555555'},
+    'rita@fujitecbrasil.com.br':{name:'Rita',is_ceo:false,role:'gestor',main_sector_id:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'},
+    'agnaldo@fujitecbrasil.com.br':{name:'Agnaldo',is_ceo:false,role:'gestor',main_sector_id:'88888888-8888-8888-8888-888888888888'},
+    'taina@fujitecbrasil.com.br':{name:'Tainá',is_ceo:false,role:'diretoria_financeira',main_sector_id:'77777777-7777-7777-7777-777777777777'}};
+  var d=byEmail[(email||'').toLowerCase()]||{name:email,is_ceo:false,role:'colaborador',main_sector_id:null};
+  return{id:uid,auth_user_id:uid,email:email,active:true,...d};
+}
+$('login-form').addEventListener('submit',async function(e){e.preventDefault();
+  var btn=e.target.querySelector('button[type=submit]');if(btn){btn.disabled=true;btn.textContent='Entrando...'}
+  var r=await s.auth.signInWithPassword({email:$('lemail').value,password:$('lsenha').value});
+  if(r.error){$('login-error').textContent=r.error.message;$('login-error').classList.remove('hidden');if(btn){btn.disabled=false;btn.textContent='Entrar no Sistema'}return}
+  u=r.data.user;
+  p=await carregaPerfil(u.id,u.email);
+  $('login-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');
+  if(btn){btn.disabled=false;btn.textContent='Entrar no Sistema'}
+  nav('dashboard');
+});
 async function logout(){await s.auth.signOut();$('app-screen').classList.add('hidden');$('login-screen').classList.remove('hidden')}
 document.addEventListener('click',function(e){var pnl=$('notif-panel');if(pnl&&!pnl.classList.contains('hidden')&&!e.target.closest('#notif-panel')&&!(e.target.closest('button')&&/toggleNotifs/.test(e.target.closest('button').getAttribute('onclick')||''))){pnl.classList.add('hidden')}});
-window.addEventListener('DOMContentLoaded',async function(){var r=await s.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){u=r.data.session.user;var pf=await s.from('users_profile').select('*').eq('id',u.id).single();p=pf.data;$('login-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');nav('dashboard')}});
+window.addEventListener('DOMContentLoaded',async function(){var r=await s.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){u=r.data.session.user;p=await carregaPerfil(u.id,u.email);$('login-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');nav('dashboard')}});
 </script>
 </body>
 </html>
