@@ -390,7 +390,7 @@ function renderSidebar(){
     if(canCreate())m.push({p:'empresas',i:'🏢',l:'Empresas'});
     m.push({p:'fluxos',i:'📥',l:'Meus Fluxos'},{p:'projetos',i:'📋',l:'Projetos'});
     m.push({p:'visao',i:'🏭',l:'Visão Geral'},{p:'gargalos',i:'⚠️',l:'Gargalos'});
-    if(isAdmin()){m.push({p:'setores',i:'⚙️',l:'Setores'});}
+    if(isAdmin()){m.push({p:'usuarios',i:'👤',l:'Usuários'},{p:'setores',i:'⚙️',l:'Setores'});}
     m.push({p:'historico',i:'🕐',l:'Histórico'});
   }else{
     m=[{p:'fluxos',i:'📥',l:'Meus Fluxos'}];
@@ -398,7 +398,7 @@ function renderSidebar(){
   $('sidebar-nav').innerHTML=m.map(function(x){return'<a href="#" onclick="event.preventDefault();nav(\''+x.p+'\')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200'+(pg===x.p?' bg-brand-500/15 text-brand-300 font-semibold shadow-sm shadow-brand-500/5':' text-slate-400 hover:text-white hover:bg-white/[0.04]')+'">'+x.i+' '+x.l+'</a>'}).join('')
     +(full?'<div class="mt-3 pt-3 border-t border-white/5"><button onclick="verFluxoBPM()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200">📋 Fluxo BPM</button></div>':'');
   $('sidebar-user').innerHTML='<div class="flex items-center gap-3 px-2"><div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-brand-500/20">'+(p&&p.name?p.name[0]:'?')+'</div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">'+E(p?p.name:'')+'</p><p class="text-xs text-slate-500 truncate">'+E(p?p.email:'')+'</p></div><button onclick="logout()" class="text-slate-500 hover:text-red-400 text-lg transition-colors">⏻</button></div>';
-  $('page-title').textContent={dashboard:'Dashboard',empresas:'Empresas',fluxos:'Meus Fluxos',projetos:'Projetos',visao:'Visão Geral',gargalos:'Gargalos',equipe:'Equipe',setores:'Setores',historico:'Histórico'}[pg]||'ERP';
+  $('page-title').textContent={dashboard:'Dashboard',empresas:'Empresas',fluxos:'Meus Fluxos',projetos:'Projetos',visao:'Visão Geral',gargalos:'Gargalos',equipe:'Equipe',setores:'Setores',usuarios:'Usuários',historico:'Histórico'}[pg]||'ERP';
   if($('page-subtitle'))$('page-subtitle').textContent={dashboard:'Indicadores e desempenho em tempo real',empresas:'Clientes e empresas atendidas',fluxos:'Projetos aguardando a sua ação',projetos:'Todos os projetos e seus status',visao:'Mapa de projetos por empresa e setor',gargalos:'Projetos parados que precisam de atenção',equipe:'Colaboradores e suas funções',setores:'Setores e responsáveis',historico:'Linha do tempo das movimentações'}[pg]||'';
 }
 async function loadData(){
@@ -441,7 +441,7 @@ var realtimeInterval=setInterval(async function(){
   if(modalOpen||viewingDetail){await loadData();return}
   await loadData();renderPage();
 },30000);
-function renderPage(){viewingDetail=false;if(!hasFullAccess()&&pg!=='fluxos'){pg='fluxos';renderSidebar();}switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'historico':rHistorico();break}}
+function renderPage(){viewingDetail=false;if(!hasFullAccess()&&pg!=='fluxos'){pg='fluxos';renderSidebar();}switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'usuarios':rUsuarios();break;case'historico':rHistorico();break}}
 
 // ==================== DASHBOARD EXECUTIVO ====================
 var dashCharts=[];
@@ -803,6 +803,45 @@ function rEquipe(){var h='<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-co
 function rSetores(){var h='<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';sectors.filter(function(x){return x.active}).forEach(function(sec){var c=projects.filter(function(pr){return pr.current_sector_id===sec.id}).length;var us=gU(sec.id);h+='<div class="bg-card2 rounded-2xl p-5 border border-slate-800 cursor-pointer hover:ring-1 hover:ring-brand-500/30 transition" style="border-left:4px solid '+sec.color+'" onclick="filtrarSetor(\''+sec.id+'\')"><span class="font-semibold text-white">'+E(sec.name)+'</span><p class="text-2xl font-bold mt-1" style="color:'+sec.color+'">'+c+'</p><p class="text-xs text-slate-500 mt-2">'+us.length+' colaborador(es):</p><div class="flex flex-wrap gap-1 mt-1">';us.forEach(function(uu){h+='<span onclick="event.stopPropagation();verUsuario(\''+uu.id+'\')" class="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 cursor-pointer hover:bg-brand-600/40 hover:text-white transition">'+E(uu.name)+'</span>'});h+='</div></div>'});h+='</div>';$('content').innerHTML=h}
 function verUsuario(uid){var us=users.find(function(x){return x.id===uid});if(!us)return;var cargo=us.is_ceo?'CEO':(us.role||'colaborador');showModal(E(us.name),'<div class="space-y-2 text-sm"><p class="text-slate-400">📧 Email: <span class="text-white">'+E(us.email||'—')+'</span></p><p class="text-slate-400">💼 Cargo: <span class="text-white">'+E(cargo)+'</span></p><p class="text-slate-400">🏢 Setor: <span class="text-white">'+E(sn(us.main_sector_id))+'</span></p></div>','<button onclick="hideModal()" class="btn-ghost px-4 py-2 text-xs rounded-xl">Fechar</button>')}
 
+// ==================== USUÁRIOS (ADMIN) ====================
+function rUsuarios(){
+  if(!isAdmin()){pg='fluxos';renderPage();return}
+  var h='<div class="mb-4"><p class="text-sm text-slate-400">'+users.length+' usuário(s) — gerencie setor, nome, acesso e senha</p></div><div class="space-y-3">';
+  users.slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'')}).forEach(function(us){
+    var extras=userSectors.filter(function(x){return x.user_id===us.id}).length;
+    h+='<div class="bg-card2 rounded-2xl p-4 border border-slate-800"><div class="flex justify-between items-center gap-3"><div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-full bg-brand-600/20 flex items-center justify-center text-brand-400 font-bold flex-shrink-0">'+(us.name||'?')[0]+'</div><div class="min-w-0"><p class="font-medium text-white truncate">'+E(us.name)+(us.active===false?' <span class="text-xs text-red-400">(inativo)</span>':'')+'</p><p class="text-xs text-slate-500 truncate">'+E(us.email)+'</p><p class="text-xs text-slate-500 mt-0.5">🏢 '+E(sn(us.main_sector_id))+(extras?' +'+extras+' extra(s)':'')+' · 💼 '+E(us.is_ceo?'CEO':(us.role||'colaborador'))+'</p></div></div><button onclick="editarUsuario(\''+us.id+'\')" class="btn-ghost px-3 py-2 text-xs rounded-xl flex-shrink-0">✏️ Editar</button></div></div>';
+  });
+  h+='</div><p class="text-xs text-slate-600 mt-4">💡 Para criar um LOGIN novo, use o painel do Supabase (Authentication) ou o script — por segurança, senhas não são criadas pelo navegador.</p>';
+  $('content').innerHTML=h;
+}
+function editarUsuario(uid){
+  var us=users.find(function(x){return x.id===uid});if(!us)return;
+  var secs=sectors.filter(function(x){return x.active});
+  var extras=userSectors.filter(function(x){return x.user_id===uid}).map(function(x){return x.sector_id});
+  var b='<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome</label><input id="us-nome" value="'+E(us.name)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div>'+
+    '<div><label class="text-xs text-slate-400">Setor principal</label><select id="us-setor" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+secs.map(function(sec){return'<option value="'+sec.id+'"'+(us.main_sector_id===sec.id?' selected':'')+'>'+E(sec.name)+'</option>'}).join('')+'</select></div>'+
+    '<div><label class="text-xs text-slate-400">Setores extras (acesso a mais setores)</label><div class="grid grid-cols-2 gap-1 mt-1">'+secs.map(function(sec){return'<label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" class="us-extra accent-brand-500" value="'+sec.id+'"'+(extras.indexOf(sec.id)>=0?' checked':'')+'> '+E(sec.name)+'</label>'}).join('')+'</div></div>'+
+    '<label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer"><input type="checkbox" id="us-ativo" class="accent-brand-500"'+(us.active!==false?' checked':'')+'> Usuário ativo</label>'+
+    '<button onclick="resetSenha(\''+uid+'\')" class="w-full btn-ghost py-2.5 rounded-xl text-xs">🔑 Enviar link de redefinição de senha por e-mail</button></div>';
+  showModal('Editar — '+E(us.name),b,'<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Cancelar</button><button onclick="salvarUsuario(\''+uid+'\')" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Salvar</button>');
+}
+async function salvarUsuario(uid){
+  var upd={name:$('us-nome').value.trim(),main_sector_id:$('us-setor').value,active:$('us-ativo').checked};
+  var r=await s.from('users_profile').update(upd).eq('id',uid);
+  if(r&&r.error){alert('❌ Não foi possível salvar as alterações do usuário:\n'+r.error.message+'\n\n(o admin precisa da regra de permissão RLS no Supabase — me avise que eu te passo o SQL)');return}
+  var checks=[].slice.call(document.querySelectorAll('.us-extra:checked')).map(function(c){return c.value});
+  var main=$('us-setor').value;
+  var del=await s.from('user_sectors').delete().eq('user_id',uid);
+  if(del&&del.error){alert('⚠️ Perfil salvo, mas os setores extras precisam da regra RLS (me avise para o SQL).');hideModal();await loadData();renderPage();return}
+  for(var i=0;i<checks.length;i++){if(checks[i]!==main)await s.from('user_sectors').insert({user_id:uid,sector_id:checks[i],permission_level:'edit',can_move_flow:true})}
+  hideModal();await loadData();renderPage();
+}
+async function resetSenha(uid){
+  var us=users.find(function(x){return x.id===uid});if(!us||!us.email)return alert('Usuário sem e-mail.');
+  if(!confirm('Enviar link de redefinição de senha para '+us.email+'?'))return;
+  var r=await s.auth.resetPasswordForEmail(us.email);
+  if(r&&r.error)alert('Erro ao enviar: '+r.error.message);else alert('✅ Link de redefinição enviado para '+us.email);
+}
 // ==================== HISTÓRICO ====================
 function rHistorico(){
   var logs=stagelogs.slice().sort(function(a,b){return new Date(b.date)-new Date(a.date)}).slice(0,150);
