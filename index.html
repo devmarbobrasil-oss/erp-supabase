@@ -88,7 +88,7 @@ var K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZn
 var s=window.supabase.createClient(U,K);
 if(window.Chart){Chart.defaults.font.family='Inter, sans-serif';Chart.defaults.color='#94a3b8';Chart.defaults.plugins.tooltip.backgroundColor='#1e293b';Chart.defaults.plugins.tooltip.borderColor='rgba(255,255,255,0.1)';Chart.defaults.plugins.tooltip.borderWidth=1;}
 var u=null,p=null,pg='dashboard',pidAv=null,curDec=0,dec='',decs=[],routeTarget=null,viewingDetail=false;
-var sectors=[],users=[],userSectors=[],projects=[],history=[],empresas=[],stagelogs=[],notifs=[],FLOW=[];
+var sectors=[],users=[],userSectors=[],projects=[],history=[],empresas=[],stagelogs=[],notifs=[],FLOW=[],crmStages=[],leads_global=[];
 
 var $=function(q){return document.getElementById(q)};
 var E=function(v){var d=document.createElement('div');d.textContent=v||'';return d.innerHTML};
@@ -390,7 +390,8 @@ function renderSidebar(){
     if(canCreate())m.push({p:'empresas',i:'🏢',l:'Empresas'});
     m.push({p:'fluxos',i:'📥',l:'Meus Fluxos'},{p:'projetos',i:'📋',l:'Projetos'});
     m.push({p:'visao',i:'🏭',l:'Visão Geral'},{p:'gargalos',i:'⚠️',l:'Gargalos'});
-    if(isAdmin()){m.push({p:'usuarios',i:'👤',l:'Usuários'},{p:'setores',i:'⚙️',l:'Setores'});}
+    if(isAdmin()){m.push({p:'usuarios',i:'👤',l:'Usuários'},{p:'setores',i:'⚙️',l:'Setores'})}
+    if(p&&(p.is_ceo||['Nathalia','Tainá','Fábio'].indexOf(p.name)>=0)){m.push({p:'crm',i:'📇',l:'CRM'});}
     m.push({p:'historico',i:'🕐',l:'Histórico'});
   }else{
     m=[{p:'fluxos',i:'📥',l:'Meus Fluxos'}];
@@ -398,12 +399,12 @@ function renderSidebar(){
   $('sidebar-nav').innerHTML=m.map(function(x){return'<a href="#" onclick="event.preventDefault();nav(\''+x.p+'\')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200'+(pg===x.p?' bg-brand-500/15 text-brand-300 font-semibold shadow-sm shadow-brand-500/5':' text-slate-400 hover:text-white hover:bg-white/[0.04]')+'">'+x.i+' '+x.l+'</a>'}).join('')
     +(full?'<div class="mt-3 pt-3 border-t border-white/5"><button onclick="verFluxoBPM()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200">📋 Fluxo BPM</button></div>':'');
   $('sidebar-user').innerHTML='<div class="flex items-center gap-3 px-2"><div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-brand-500/20">'+(p&&p.name?p.name[0]:'?')+'</div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-white truncate">'+E(p?p.name:'')+'</p><p class="text-xs text-slate-500 truncate">'+E(p?p.email:'')+'</p></div><button onclick="logout()" class="text-slate-500 hover:text-red-400 text-lg transition-colors">⏻</button></div>';
-  $('page-title').textContent={dashboard:'Dashboard',empresas:'Empresas',fluxos:'Meus Fluxos',projetos:'Projetos',visao:'Visão Geral',gargalos:'Gargalos',equipe:'Equipe',setores:'Setores',usuarios:'Usuários',historico:'Histórico'}[pg]||'ERP';
-  if($('page-subtitle'))$('page-subtitle').textContent={dashboard:'Indicadores e desempenho em tempo real',empresas:'Clientes e empresas atendidas',fluxos:'Projetos aguardando a sua ação',projetos:'Todos os projetos e seus status',visao:'Mapa de projetos por empresa e setor',gargalos:'Projetos parados que precisam de atenção',equipe:'Colaboradores e suas funções',setores:'Setores e responsáveis',historico:'Linha do tempo das movimentações'}[pg]||'';
+  $('page-title').textContent={dashboard:'Dashboard',empresas:'Empresas',fluxos:'Meus Fluxos',projetos:'Projetos',visao:'Visão Geral',gargalos:'Gargalos',equipe:'Equipe',setores:'Setores',usuarios:'Usuários',crm:'CRM Comercial',historico:'Histórico'}[pg]||'ERP';
+  if($('page-subtitle'))$('page-subtitle').textContent={dashboard:'Indicadores e desempenho em tempo real',empresas:'Clientes e empresas atendidas',fluxos:'Projetos aguardando a sua ação',projetos:'Todos os projetos e seus status',visao:'Mapa de projetos por empresa e setor',gargalos:'Projetos parados que precisam de atenção',equipe:'Colaboradores e suas funções',setores:'Setores e responsáveis',crm:'Funil de oportunidades de vendas (Nathalia, Fábio, Tainá)',historico:'Linha do tempo das movimentações'}[pg]||'';
 }
 async function loadData(){
-  var all=await Promise.all([s.from('sectors').select('*').order('sort_order'),s.from('users_profile').select('*'),s.from('user_sectors').select('*'),s.from('projects').select('*').order('created_at',{ascending:false}),s.from('project_flow_history').select('*').order('created_at',{ascending:false}).limit(300),s.from('empresas').select('*').order('nome'),s.from('stage_logs').select('*').order('date',{ascending:false}).limit(500),s.from('notifications').select('*').eq('user_id',u.id).order('created_at',{ascending:false}).limit(50)]);
-  sectors=all[0].data||[];users=all[1].data||[];userSectors=all[2].data||[];projects=all[3].data||[];history=all[4].data||[];empresas=all[5].data||[];stagelogs=all[6].data||[];notifs=all[7].data||[];
+  var all=await Promise.all([s.from('sectors').select('*').order('sort_order'),s.from('users_profile').select('*'),s.from('user_sectors').select('*'),s.from('projects').select('*').order('created_at',{ascending:false}),s.from('project_flow_history').select('*').order('created_at',{ascending:false}).limit(300),s.from('empresas').select('*').order('nome'),s.from('stage_logs').select('*').order('date',{ascending:false}).limit(500),s.from('notifications').select('*').eq('user_id',u.id).order('created_at',{ascending:false}).limit(50),s.from('crm_stages').select('*').order('ordem'),s.from('crm_leads').select('*')]);
+  sectors=all[0].data||[];users=all[1].data||[];userSectors=all[2].data||[];projects=all[3].data||[];history=all[4].data||[];empresas=all[5].data||[];stagelogs=all[6].data||[];notifs=all[7].data||[];crmStages=all[8].data||[];leads_global=all[9].data||[];
   FLOW=BPM.map(function(b){return b.phase});
   updateNotifBadge();
 }
@@ -441,7 +442,7 @@ var realtimeInterval=setInterval(async function(){
   if(modalOpen||viewingDetail){await loadData();return}
   await loadData();renderPage();
 },30000);
-function renderPage(){viewingDetail=false;if(!hasFullAccess()&&pg!=='fluxos'){pg='fluxos';renderSidebar();}switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'usuarios':rUsuarios();break;case'historico':rHistorico();break}}
+function renderPage(){viewingDetail=false;if(!hasFullAccess()&&pg!=='fluxos'){pg='fluxos';renderSidebar();}switch(pg){case'dashboard':rDashboard();break;case'empresas':rEmpresas();break;case'fluxos':rFluxos();break;case'projetos':rProjetos();break;case'visao':rVisao();break;case'gargalos':rGargalos();break;case'equipe':rEquipe();break;case'setores':rSetores();break;case'usuarios':rUsuarios();break;case'crm':rCRM();break;case'historico':rHistorico();break}}
 
 // ==================== DASHBOARD EXECUTIVO ====================
 var dashCharts=[];
@@ -661,6 +662,12 @@ function rBpmFinal(){
   if(!nxtUsers||nxtUsers.length===0)nxtUsers=users.filter(function(x){return x.active!==false});
   if(!nxtUsers||nxtUsers.length===0)nxtUsers=users.slice();
   var opts=nxtUsers.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('');
+  var isEtapa11Paralelo=(b.step===11&&allYes&&r.kind==='move');
+  var paralelOpts='';
+  if(isEtapa11Paralelo){
+    var engUsers=users.filter(function(x){return x.active!==false});
+    paralelOpts='<div class="rounded-2xl p-3 border border-purple-500/30 bg-purple-500/5"><p class="text-xs text-purple-400 font-semibold">🔀 TRILHA PARALELA ativada!</p><p class="text-xs text-slate-400 mt-1">Esta decisão SIM abre 2 trilhas simultâneas:</p><p class="text-xs text-slate-300 mt-2">✅ Trilha 1 (Material): '+r.nxtBpm.phase+'</p><p class="text-xs text-slate-300">✅ Trilha 2 (Engenharia): 31. Análise Documentação Técnica</p><div class="mt-2"><label class="text-xs text-slate-400">Responsável da Trilha 2 (Engenharia) *</label><select id="av-resp-paralelo" class="w-full px-4 py-3 text-white text-sm mt-1">'+engUsers.map(function(x){return'<option value="'+x.id+'">'+E(x.name)+'</option>'}).join('')+'</select></div></div>';
+  }
   var delOpts='';
   if(b.delegar&&p&&p.name==='André'){
     var dels=users.filter(function(x){return b.delegar.indexOf(x.name.split(' ')[0])>=0});
@@ -676,6 +683,7 @@ function rBpmFinal(){
   else if(r.kind==='cancel')b2+='<div class="glass rounded-2xl p-3 border border-red-500/20 text-center"><p class="text-sm font-bold text-red-400">⛔ DECLINAR / CANCELAR</p></div>';
   else if(r.kind==='move')b2+='<div class="glass rounded-2xl p-3 border border-green-500/20 text-center"><p class="text-sm font-bold text-green-400">➡️ Avançar para:</p><p class="text-sm font-bold text-green-300">'+r.nxtBpm.phase+'</p></div>';
   else b2+='<div class="glass rounded-2xl p-3 border border-yellow-500/20 text-center"><p class="text-sm font-bold text-yellow-400">⏳ Fica pendente em '+b.phase+'</p><p class="text-xs text-slate-500 mt-1">(aguardar / refazer esta etapa)</p></div>';
+  b2+=paralelOpts;
   b2+='<div><label class="text-xs text-slate-400">Responsável ('+nxtLabel+') *</label><select id="av-resp" class="w-full px-4 py-3 text-white text-sm mt-1">'+opts+'</select></div>'+delOpts+'<div><label class="text-xs text-slate-400">Observação</label><textarea id="av-notes" rows="2" class="w-full px-4 py-3 text-white text-sm mt-1"></textarea></div></div>';
   $('mbody').innerHTML=b2;
   $('mfooter').innerHTML='<button onclick="showAvancar(pidAv)" class="btn-ghost px-4 py-2 text-xs rounded-xl">← Voltar</button><button onclick="doAv()" class="btn-primary px-6 py-3 text-xs rounded-xl font-medium">✅ Confirmar</button>';
@@ -691,6 +699,15 @@ async function doAv(){
   if(!resp)return alert('Selecione um responsavel');
   var uResp=users.find(function(x){return x.id===resp});
   if(!uResp)return alert('Responsavel invalido');
+
+  // Trilha paralela: se etapa 11 com SIM, pega o responsável da trilha 2
+  var respParalelo=null,uRespParalelo=null;
+  var isEtapa11Paralelo=(b.step===11&&allYes&&r.kind==='move');
+  if(isEtapa11Paralelo){
+    respParalelo=$('av-resp-paralelo')?$('av-resp-paralelo').value:null;
+    if(respParalelo)uRespParalelo=users.find(function(x){return x.id===respParalelo});
+  }
+
   var lastLog=stagelogs.filter(function(l){return l.project_id===pid}).sort(function(a,b){return new Date(b.date)-new Date(a.date)})[0];
   if(lastLog&&lastLog.to_stage===r.newTo&&lastLog.from_stage===b.phase){
     return alert('Este avanço já foi registrado. Atualize a página.');
@@ -698,13 +715,25 @@ async function doAv(){
   var upd,toStage,ntype,ntitle,nmsg;
   if(r.kind==='cancel'){upd={current_responsible_user_id:resp,status:'Cancelado / Declinado',finalized_at:new Date().toISOString()};toStage='Declinado';ntype='declined';ntitle='⛔ Declinado: '+E(pr.name);nmsg='Projeto '+E(pr.name)+' declinado';}
   else if(r.kind==='final'){upd={current_responsible_user_id:resp,status:'Finalizado',finalized_at:new Date().toISOString()};toStage='Finalizado';ntype='finalized';ntitle='🏁 Finalizado: '+E(pr.name);nmsg='Projeto '+E(pr.name)+' finalizado';}
-  else if(r.kind==='move'){upd={current_sector_id:r.nxtBpm.uuid,current_responsible_user_id:resp,status:'Em andamento'};toStage=r.nxtBpm.phase;ntype='flow_received';ntitle='✅ '+r.nxtBpm.phase;nmsg='Projeto '+E(pr.name)+' avançou. Resp: '+E(uResp.name);}
+  else if(r.kind==='move'){upd={current_sector_id:r.nxtBpm.uuid,current_responsible_user_id:resp,status:'Em andamento'};if(isEtapa11Paralelo){upd.paralelo_ativo=true;upd.paralelo_responsavel_id=respParalelo}toStage=r.nxtBpm.phase;ntype='flow_received';ntitle='✅ '+r.nxtBpm.phase;nmsg='Projeto '+E(pr.name)+' avançou. Resp: '+E(uResp.name);}
   else{upd={current_responsible_user_id:resp};toStage=b.phase+' (pendente)';ntype='stalled';ntitle='⏳ Pendência: '+E(pr.name);nmsg='Projeto '+E(pr.name)+' pendente em '+b.phase;}
   var upRes=await s.from('projects').update(upd).eq('id',pid);
   if(upRes&&upRes.error){alert('❌ Não foi possível avançar.\n\nO banco recusou a alteração:\n'+upRes.error.message+'\n\n(provável regra de permissão/RLS no Supabase)');return;}
-  var slRes=await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:toStage,user_id:u.id,notes:notes||dec});
-  if(slRes&&slRes.error){alert('⚠️ O projeto avançou, mas o histórico não salvou:\n'+slRes.error.message);}
+
+  // Trilha paralela: criar 2 stage_logs (um pra cada trilha)
+  if(isEtapa11Paralelo&&respParalelo){
+    await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:toStage,user_id:u.id,notes:notes||dec,track:'principal'});
+    var etapa31=getBpmByStep(31);
+    if(etapa31)await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:etapa31.phase,user_id:u.id,notes:'Trilha paralela iniciada',track:'paralelo'});
+  }else{
+    var slRes=await s.from('stage_logs').insert({project_id:pid,from_stage:b.phase,to_stage:toStage,user_id:u.id,notes:notes||dec,track:'principal'});
+    if(slRes&&slRes.error){alert('⚠️ O projeto avançou, mas o histórico não salvou:\n'+slRes.error.message);}
+  }
+
   await s.from('notifications').insert({project_id:pid,user_id:resp,type:ntype,title:ntitle,message:nmsg,status:'pendente'});
+  if(isEtapa11Paralelo&&respParalelo){
+    await s.from('notifications').insert({project_id:pid,user_id:respParalelo,type:'flow_received',title:'🔀 Trilha paralela: 31. Análise Documentação Técnica',message:'Trilha de engenharia iniciada para '+E(pr.name),status:'pendente'});
+  }
   var gestor=getBpmNotifyUser(curStep);
   if(gestor&&gestor.id!==resp){
     await s.from('notifications').insert({project_id:pid,user_id:gestor.id,type:'flow_received',title:'📢 '+b.phase,message:((r.kind==='move'||r.kind==='final')?'✅ Avançou':'⏳ Pendência')+' | '+E(pr.name)+' | '+E(uResp.name),status:'pendente'});
@@ -841,6 +870,111 @@ async function resetSenha(uid){
   if(!confirm('Enviar link de redefinição de senha para '+us.email+'?'))return;
   var r=await s.auth.resetPasswordForEmail(us.email);
   if(r&&r.error)alert('Erro ao enviar: '+r.error.message);else alert('✅ Link de redefinição enviado para '+us.email);
+}
+// ==================== CRM COMERCIAL ====================
+var crmStages=[]; function rCRM(){
+  var isCrmUser=p&&(p.is_ceo||['Nathalia','Tainá','Fábio'].indexOf(p.name)>=0);
+  if(!isCrmUser){pg='fluxos';renderPage();return}
+  var h='<div class="mb-4 flex justify-between items-center"><div><p class="text-sm text-slate-400">Gerencie o funil de vendas e oportunidades</p></div><button onclick="gerenciarEtapasCRM()" class="btn-ghost px-3 py-2 text-xs rounded-xl">⚙️ Etapas</button></div>';
+  // Ordena por ordem crescente
+  var stages=(crmStages||[]).slice().sort(function(a,b){return(a.ordem||0)-(b.ordem||0)});
+  h+='<div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">';
+  stages.filter(function(s){return s.ativo!==false}).forEach(function(stage){
+    var leads=leads_global.filter(function(l){return l.stage_id===stage.id});
+    var perm=canEditStage(stage); var cor=stage.cor||'#6366f1';
+    h+='<div class="rounded-2xl p-4 border border-slate-700" style="border-top:3px solid '+cor+'"><div class="flex justify-between items-center mb-3"><h3 class="font-medium text-white">'+E(stage.nome)+'</h3><span class="text-xs bg-slate-700 text-slate-200 px-2 py-1 rounded-full">'+leads.length+'</span></div>';
+    h+='<div class="space-y-2 min-h-20 rounded-xl bg-slate-900/30 p-3">';
+    leads.forEach(function(l){
+      h+='<div class="bg-slate-800 rounded-lg p-3 cursor-pointer hover:bg-slate-700 transition" onclick="verLead(\''+l.id+'\')">';
+      h+='<p class="font-medium text-sm text-white truncate">'+E(l.nome)+'</p>';
+      h+='<p class="text-xs text-slate-400">'+E(l.empresa||'—')+'</p>';
+      if(l.valor>0)h+='<p class="text-xs text-green-400 font-medium mt-1">R$ '+l.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</p>';
+      h+='</div>';
+    });
+    h+='</div>';
+    if(perm){h+='<button onclick="novoLead(\''+stage.id+'\')" class="w-full btn-ghost py-2 mt-2 text-xs rounded-xl">+ Novo lead</button>'}
+    h+='</div>';
+  });
+  h+='</div>';
+  $('content').innerHTML=h;
+}
+function canEditStage(stage){if(!stage.editores)return true;return stage.editores.indexOf(u.id)>=0}
+function gerenciarEtapasCRM(){
+  var s=(crmStages||[]).slice().sort(function(a,b){return(a.ordem||0)-(b.ordem||0)});
+  var h='<div class="space-y-3 max-h-96 overflow-y-auto">';
+  s.forEach(function(st){
+    h+='<div class="bg-slate-800 rounded-lg p-3 flex justify-between items-center"><div class="flex-1"><p class="font-medium text-sm text-white">'+E(st.nome)+'</p><p class="text-xs text-slate-400 mt-0.5">'+st.ordem+' · '+st.tipo+'</p></div><button onclick="editarEtapaCRM(\''+st.id+'\')" class="btn-ghost px-2 py-1 text-xs rounded">✏️</button></div>';
+  });
+  h+='</div><button onclick="novaEtapaCRM()" class="w-full btn-ghost py-2 mt-3 text-xs rounded-xl">+ Nova etapa</button>';
+  showModal('Gerenciar Etapas do CRM',h,'<button onclick="hideModal()" class="px-4 py-2 bg-input text-slate-300 rounded-xl text-sm">Fechar</button>');
+}
+function editarEtapaCRM(stid){
+  var st=crmStages.find(function(x){return x.id===stid});if(!st)return;
+  var b='<div class="space-y-3"><input id="crm-nome" value="'+E(st.nome)+'" placeholder="Nome da etapa" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+
+    '<select id="crm-tipo" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"><option value="normal"'+(st.tipo==='normal'?' selected':'')+'}>Normal</option><option value="ganho"'+(st.tipo==='ganho'?' selected':'')+'}>Ganho</option><option value="perdido"'+(st.tipo==='perdido'?' selected':'')+'}>Perdido</option></select>'+
+    '<input id="crm-ordem" type="number" value="'+(st.ordem||0)+'" placeholder="Ordem (0, 1, 2...)" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm">'+
+    '<input id="crm-cor" type="color" value="'+(st.cor||'#6366f1')+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 cursor-pointer">'+
+    '</div>';
+  showModal('Editar — '+E(st.nome),b,'<button onclick="hideModal()" class="px-4 py-2 bg-input rounded-xl text-sm">Cancelar</button><button onclick="salvarEtapaCRM(\''+stid+'\')" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Salvar</button>');
+}
+async function salvarEtapaCRM(stid){
+  var upd={nome:$('crm-nome').value,tipo:$('crm-tipo').value,ordem:parseInt($('crm-ordem').value)||0,cor:$('crm-cor').value};
+  await s.from('crm_stages').update(upd).eq('id',stid);hideModal();await loadData();renderPage();
+}
+async function novaEtapaCRM(){
+  var nome=prompt('Nome da nova etapa:');if(!nome)return;
+  await s.from('crm_stages').insert({nome:nome,ordem:(crmStages.length||0),tipo:'normal',editores:[u.id]});
+  await loadData();gerenciarEtapasCRM();
+}
+function verLead(lid){
+  var l=leads_global.find(function(x){return x.id===lid});if(!l)return;
+  var st=crmStages.find(function(x){return x.id===l.stage_id});
+  var b='<div class="space-y-3"><div><label class="text-xs text-slate-400">Nome</label><p class="text-white font-medium">'+E(l.nome)+'</p></div>'+
+    '<div><label class="text-xs text-slate-400">Empresa</label><p class="text-slate-300">'+E(l.empresa||'—')+'</p></div>'+
+    '<div><label class="text-xs text-slate-400">Contato</label><p class="text-slate-300">'+E(l.contato_email||'—')+' · '+E(l.contato_telefone||'—')+'</p></div>'+
+    '<div><label class="text-xs text-slate-400">Valor estimado</label><p class="text-green-400 font-medium">R$ '+(l.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})+'</p></div>'+
+    '<div><label class="text-xs text-slate-400">Etapa</label><p class="text-slate-300">'+E(st?st.nome:'—')+'</p></div>'+
+    '<div><label class="text-xs text-slate-400">Responsável</label><p class="text-slate-300">'+E((users.find(function(x){return x.id===l.responsavel_id})||{}).name||'—')+'</p></div>'+
+    '<div><label class="text-xs text-slate-400">Próxima ação</label><p class="text-slate-300">'+E(l.proxima_acao||'—')+(l.proxima_data?' até '+new Date(l.proxima_data).toLocaleDateString('pt-BR'):'')+'</p></div>'+
+    '<div><label class="text-xs text-slate-400">Notas</label><p class="text-slate-300 text-sm">'+E(l.notas||'—')+'</p></div>';
+  if(canEditStage(st||{})){b+='<button onclick="editarLead(\''+lid+'\')" class="w-full btn-ghost py-2 rounded-xl text-sm">✏️ Editar</button>'}
+  if(st&&st.tipo==='ganho'&&!l.projeto_id){b+='<button onclick="ganhoLeadCriaProj(\''+lid+'\')" class="w-full btn-primary py-2 rounded-xl text-sm">🎉 Criar projeto no ERP</button>'}
+  showModal(E(l.nome)+' — CRM',b,'<button onclick="hideModal()" class="px-4 py-2 bg-input rounded-xl text-sm">Fechar</button>');
+}
+function editarLead(lid){
+  var l=leads_global.find(function(x){return x.id===lid});if(!l)return;
+  var b='<div class="space-y-3">'+
+    '<div><label class="text-xs text-slate-400">Nome</label><input id="lead-nome" value="'+E(l.nome)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div>'+
+    '<div><label class="text-xs text-slate-400">Empresa</label><input id="lead-empr" value="'+E(l.empresa||'')+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div>'+
+    '<div><label class="text-xs text-slate-400">Email</label><input id="lead-email" value="'+E(l.contato_email||'')+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div>'+
+    '<div><label class="text-xs text-slate-400">Telefone</label><input id="lead-tel" value="'+E(l.contato_telefone||'')+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div>'+
+    '<div><label class="text-xs text-slate-400">Valor (R$)</label><input id="lead-valor" type="number" value="'+(l.valor||0)+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div>'+
+    '<div><label class="text-xs text-slate-400">Responsável</label><select id="lead-resp" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"><option value="">— sem atribuir —</option>'+users.map(function(uu){return'<option value="'+uu.id+'"'+(l.responsavel_id===uu.id?' selected':'')+'>'+(uu.name||'—')+'</option>'}).join('')+'</select></div>'+
+    '<div><label class="text-xs text-slate-400">Próxima ação</label><input id="lead-acao" value="'+E(l.proxima_acao||'')+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div>'+
+    '<div><label class="text-xs text-slate-400">Próxima data</label><input id="lead-data" type="date" value="'+(l.proxima_data||'')+'" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm"></div>'+
+    '<div><label class="text-xs text-slate-400">Notas</label><textarea id="lead-notas" class="w-full bg-input border border-slate-600 rounded-xl px-4 py-3 text-white text-sm" rows="3">'+E(l.notas||'')+'</textarea></div>'+
+    '</div>';
+  showModal('Editar — '+E(l.nome),b,'<button onclick="hideModal()" class="px-4 py-2 bg-input rounded-xl text-sm">Cancelar</button><button onclick="salvarLead(\''+lid+'\')" class="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium">Salvar</button>');
+}
+async function salvarLead(lid){
+  var upd={nome:$('lead-nome').value,empresa:$('lead-empr').value,contato_email:$('lead-email').value,contato_telefone:$('lead-tel').value,valor:parseFloat($('lead-valor').value)||0,responsavel_id:($('lead-resp').value||null),proxima_acao:$('lead-acao').value,proxima_data:($('lead-data').value||null),notas:$('lead-notas').value};
+  await s.from('crm_leads').update(upd).eq('id',lid);hideModal();await loadData();renderPage();
+}
+async function novoLead(stid){
+  var nome=prompt('Nome do contato:');if(!nome)return;
+  await s.from('crm_leads').insert({nome:nome,stage_id:stid,created_by:u.id});await loadData();renderPage();
+}
+async function ganhoLeadCriaProj(lid){
+  var l=leads_global.find(function(x){return x.id===lid});if(!l||l.projeto_id)return;
+  if(!confirm('Criar projeto "'+l.nome+'" no ERP?'))return;
+  var pr={name:l.nome,code:(l.empresa||'').substring(0,2).toUpperCase()+'_'+l.nome.substring(0,3).toUpperCase(),status:'Em andamento',current_sector_id:sectors[0].id,current_responsible_user_id:l.responsavel_id||u.id,empresa_id:'',created_at:new Date().toISOString()};
+  var ins=await s.from('projects').insert([pr]).select();
+  if(ins.data&&ins.data[0]){
+    var proj_id=ins.data[0].id;
+    await s.from('crm_leads').update({projeto_id:proj_id}).eq('id',lid);
+    await s.from('stage_logs').insert({project_id:proj_id,from_stage:'Origem CRM',to_stage:'1. Análise de Vendas',date:new Date().toISOString(),user_id:u.id,notes:'Lead: '+l.nome+' ('+l.empresa+')'});
+    hideModal();await loadData();renderPage();alert('✅ Projeto criado! ID: '+proj_id.substring(0,8));
+  }
 }
 // ==================== HISTÓRICO ====================
 function rHistorico(){
